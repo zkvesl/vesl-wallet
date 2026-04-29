@@ -8,5 +8,5 @@
 //! re-export math internals (curve coordinates, F6 extensions, Tip5 sponge
 //! state) through this module. New entries require a v0.x version bump.
 
-pub use crate::math::belt::Belt;
+pub use crate::math::belt::{Belt, PRIME};
 pub use crate::math::tip5::hash_varlen;
