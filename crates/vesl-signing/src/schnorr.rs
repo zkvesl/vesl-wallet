@@ -16,9 +16,12 @@ use crate::math::cheetah::{
 use crate::math::tip5::hash_varlen;
 
 // Re-export the public-key types so downstream consumers (e.g.,
-// x402-nockchain-crypto's `signer.rs` / `verifier.rs`) can name them
-// without reaching into `pub(crate) mod math`.
-pub use crate::math::cheetah::{CheetahError, CheetahPoint};
+// x402-nockchain-crypto's `signer.rs` / `verifier.rs`, vesl-core's
+// signing shim) can name them without reaching into `pub(crate) mod
+// math`. `F6lt` is needed alongside `CheetahPoint` so shim crates
+// can construct points from raw coordinate Belts (matching the
+// `CheetahPoint { x: F6lt(...), y: F6lt(...), inf }` literal form).
+pub use crate::math::cheetah::{CheetahError, CheetahPoint, F6lt};
 
 // ---------------------------------------------------------------------------
 // Errors
