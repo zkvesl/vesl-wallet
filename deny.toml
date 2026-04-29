@@ -1,0 +1,40 @@
+# cargo-deny config for vesl-identity workspace.
+# Run via `cargo deny check licenses bans advisories sources`.
+
+[graph]
+all-features = true
+
+[licenses]
+# Allow-list. Covers ~99% of the Rust ecosystem we depend on.
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-3-Clause",
+    "BSD-2-Clause",
+    "ISC",
+    "Unicode-3.0",
+    "Unicode-DFS-2016",
+    "Zlib",
+    "CC0-1.0",
+    "MPL-2.0",
+]
+confidence-threshold = 0.93
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+deny = [
+    # Push toward rustls / pure-Rust crypto. Add OpenSSL only if a transitive
+    # dep we cannot avoid forces it (currently none).
+    { name = "openssl-sys" },
+]
+
+[advisories]
+yanked = "deny"
+ignore = []
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-git = []

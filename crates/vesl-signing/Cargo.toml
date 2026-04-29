@@ -1,0 +1,24 @@
+[package]
+name = "vesl-signing"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Schnorr-over-Cheetah signing, Tip5 domain separators, SIWN (CAIP-122) for the Vesl/Nockchain identity bundle. Self-contained: vendors the Goldilocks/Cheetah/Tip5 math substrate."
+readme = "README.md"
+keywords = ["nockchain", "vesl", "schnorr", "cheetah", "tip5"]
+categories = ["cryptography"]
+
+[dependencies]
+# Lift target: the W1-3 plan moves x402-nockchain-crypto's modules here.
+# Placeholder crate compiles green; deps land with the source files in
+# Phase 1-3 of the lift (Days 3-9 per the plan).
+
+[features]
+default = []
+# `json` will gate SchnorrSignatureJson / SchnorrPair wire types so a
+# hardware-wallet vendor without serde_json can take a leaner crate.
+json = []
+# `siwn` will gate the CAIP-122 module (pulls chrono + base64).
+siwn = ["json"]
