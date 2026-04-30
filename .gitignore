@@ -8,7 +8,6 @@
 .idea/
 .vscode/
 
-# Per docs/plans/shared-infrastructure/10-PHASE-0-NOW.md: Cargo.lock IS
-# committed for vesl-identity (workspace-of-libraries-with-CI is the canonical
-# bundle, reproducible CI matters). If hardware-wallet vendors complain about
-# noise downstream we revisit at v0.2.0.
+# Cargo.lock IS committed for vesl-wallet (workspace-of-libraries-with-CI
+# is the canonical bundle, reproducible CI matters). If hardware-wallet
+# vendors complain about noise downstream we revisit at v0.2.0.

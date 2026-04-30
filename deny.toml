@@ -1,4 +1,4 @@
-# cargo-deny config for vesl-identity workspace.
+# cargo-deny config for vesl-wallet workspace.
 # Run via `cargo deny check licenses bans advisories sources`.
 
 [graph]

@@ -1,12 +1,12 @@
-# Contributing to vesl-identity
+# Contributing to vesl-wallet
 
 Thanks for your interest. This workspace is under active development. Contributions are coordinated by the maintainers.
 
 ## Quick development setup
 
 ```bash
-git clone https://github.com/zkvesl/vesl-identity.git
-cd vesl-identity
+git clone https://github.com/zkvesl/vesl-wallet.git
+cd vesl-wallet
 cargo build --workspace
 cargo test --workspace --all-features
 cargo clippy --workspace --all-targets --all-features -- -D warnings
