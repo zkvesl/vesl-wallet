@@ -1,7 +1,6 @@
 [toolchain]
 # Pinned to stable. The whole point of the math-substrate vendoring decision
-# (see docs/plans/shared-infrastructure/10-PHASE-0-NOW.md) is to keep this
-# crate stable-clean: hardware-wallet vendors and external consumers should
-# not need a nightly toolchain to depend on us.
+# is to keep this crate stable-clean: hardware-wallet vendors and external
+# consumers should not need a nightly toolchain to depend on us.
 channel = "stable"
 components = ["rustfmt", "clippy"]

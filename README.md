@@ -8,11 +8,11 @@ This is a workspace bundle. It ships three independently-`cargo add`-able crates
 
 | Crate | Status | Purpose |
 |---|---|---|
-| [`vesl-signing`](crates/vesl-signing) | scaffold (W1-3 lift in progress) | Schnorr-over-Cheetah signing, Tip5 domain separators, SIWN (CAIP-122). |
-| [`vesl-wallet-spec`](crates/vesl-wallet-spec) | scaffold (W4-5) | BIP44 5-level layout convention. Doc-only. Closes OD#1 (`role=4` for x402 spending keys). |
-| [`vesl-wallet`](crates/vesl-wallet) | scaffold (W6-8) | Ergonomic Hull-author wallet API. Pure-Rust HD derivation atop Cheetah. |
+| [`vesl-signing`](crates/vesl-signing) | active | Schnorr-over-Cheetah signing, Tip5 domain separators, SIWN (CAIP-122). |
+| [`vesl-wallet-spec`](crates/vesl-wallet-spec) | active | BIP44 5-level layout convention. Doc-only. Closes OD#1 (`role=4` for x402 spending keys). |
+| [`vesl-wallet`](crates/vesl-wallet) | scaffold | Ergonomic Hull-author wallet API. Pure-Rust HD derivation atop Cheetah. |
 
-## Quick start (post-W3)
+## Quick start
 
 ```toml
 [dependencies]
@@ -32,10 +32,10 @@ let (chal, sig) = schnorr_sign(&key, &msg)?;
 
 ## Math substrate
 
-`vesl-signing` vendors its math primitives (Goldilocks `Belt`, Tip5 hash, Cheetah curve, F6 sextic extension). The crate has zero dependencies on the `nockchain-math` upstream or on `nockchain-tip5-rs`. Rationale (see `vesl-labs/docs/plans/shared-infrastructure/10-PHASE-0-NOW.md` and architectural decisions confirmed 2026-04-29):
+`vesl-signing` vendors its math primitives (Goldilocks `Belt`, Tip5 hash, Cheetah curve, F6 sextic extension). The crate has zero dependencies on the `nockchain-math` upstream or on `nockchain-tip5-rs`. Rationale:
 
 - Self-contained = lean adoption surface for hardware-wallet vendors and external consumers (no nockchain-monorepo checkout required).
-- Drift mitigation: a parity test suite compares vendored math byte-for-byte against `nockchain-math` HEAD on committed fixture vectors, regenerated quarterly.
+- Drift mitigation: a parity test suite compares vendored math byte-for-byte against `nockchain-math` HEAD on committed fixture vectors, regenerated periodically.
 
 ## Development
 

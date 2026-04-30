@@ -7,9 +7,9 @@ members = [
 ]
 
 [workspace.package]
-# Pre-0.1.0 scaffolding. First crate to ship is vesl-signing v0.1.0 at end of W3
-# (per docs/plans/shared-infrastructure/10-PHASE-0-NOW.md). At that point the
-# bundle tag bumps to v0.1.0; until then we sit at v0.0.0 (scaffold marker).
+# Pre-0.1.0 scaffolding. First crate to ship is vesl-signing v0.1.0; at that
+# point the bundle tag bumps to v0.1.0. Until then we sit at v0.0.0
+# (scaffold marker).
 version = "0.0.0"
 edition = "2021"
 rust-version = "1.85"
@@ -18,8 +18,7 @@ repository = "https://github.com/zkvesl/vesl-identity"
 publish = false
 
 [workspace.dependencies]
-# Pins matched to x402-nockchain's workspace deps so the W1-3 lift doesn't
-# churn versions. See docs/plans/shared-infrastructure/10-PHASE-0-NOW.md.
+# Pins matched to x402-nockchain's workspace deps to avoid version churn.
 anyhow = "1"
 base64 = "0.22"
 bs58 = "0.5"
