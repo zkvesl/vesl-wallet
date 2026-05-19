@@ -11,3 +11,7 @@
 # Cargo.lock IS committed for vesl-wallet (workspace-of-libraries-with-CI
 # is the canonical bundle, reproducible CI matters). If hardware-wallet
 # vendors complain about noise downstream we revisit at v0.2.0.
+
+# Release tooling (maintainer-local; release.yml workflow stays tracked)
+/scripts/release.sh
+/scripts/release-notes.template.md
