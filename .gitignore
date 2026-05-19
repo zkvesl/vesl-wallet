@@ -8,6 +8,11 @@
 .idea/
 .vscode/
 
+# Local developer guidance (Claude Code reads this when working here;
+# not part of the shipped repo — matches vesl-core / vesl-nockup /
+# hull-llm convention).
+CLAUDE.md
+
 # Cargo.lock IS committed for vesl-wallet (workspace-of-libraries-with-CI
 # is the canonical bundle, reproducible CI matters). If hardware-wallet
 # vendors complain about noise downstream we revisit at v0.2.0.
