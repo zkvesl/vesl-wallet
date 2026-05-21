@@ -13,6 +13,10 @@
 # hull-llm convention).
 CLAUDE.md
 
+# Local working notes — deferred-work TODOs and audit issue docs.
+# Not shipped; matches the vesl-core / vesl-nockup / hull-llm convention.
+.dev/
+
 # Cargo.lock IS committed for vesl-wallet (workspace-of-libraries-with-CI
 # is the canonical bundle, reproducible CI matters). If hardware-wallet
 # vendors complain about noise downstream we revisit at v0.2.0.
