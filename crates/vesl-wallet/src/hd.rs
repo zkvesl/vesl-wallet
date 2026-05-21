@@ -65,6 +65,11 @@ const TAG_NON_HARDENED: u8 = 0x01;
 
 /// Derived material: a Cheetah scalar and the chain code that lets the
 /// wallet derive its children.
+///
+/// AUDIT 2026-05-20 M-13: not zeroized on drop — `scalar` is an
+/// `ibig::UBig` with no `Zeroize` impl, so this UBig-containing struct
+/// cannot be cleanly `ZeroizeOnDrop` (see `SchnorrPrivateKey`). The root
+/// seed and mnemonic, the secrets these descend from, ARE zeroized.
 #[derive(Clone)]
 pub(crate) struct ExtKey {
     pub(crate) scalar: UBig,

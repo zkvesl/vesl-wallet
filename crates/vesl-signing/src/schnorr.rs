@@ -90,6 +90,12 @@ pub use wire::{SchnorrPair, SchnorrSignatureJson};
 // ---------------------------------------------------------------------------
 
 /// Schnorr private key: a scalar in `[1, G_ORDER)`.
+///
+/// AUDIT 2026-05-20 M-13: the scalar is an `ibig::UBig` (heap bignum, no
+/// `Zeroize` impl) — it is *not* wiped on drop. Cleanly zeroizing it needs
+/// a byte-backed key representation (`Zeroizing<[u8; 32]>` materialized to
+/// `UBig` transiently); that refactor was deferred. The root 64-byte seed
+/// and the BIP-39 mnemonic these descend from ARE zeroized.
 #[derive(Clone)]
 pub struct SchnorrPrivateKey(UBig);
 
