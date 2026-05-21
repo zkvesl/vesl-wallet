@@ -61,6 +61,24 @@ let msg = [Belt(1), Belt(2), Belt(3), Belt(4), Belt(5)];
 let (chal, sig) = schnorr_sign(&key, &msg)?;
 ```
 
+## Signing is not constant-time
+
+> **Do not run vesl-signing's signing path in a hosted or multi-tenant
+> setting.** `schnorr_sign`'s scalar multiplication (`ch_scal_big`) is
+> not constant-time — its execution time depends on the secret nonce.
+> An attacker who can measure signing timing can recover that nonce, and
+> from the nonce plus the public signature, the private key.
+
+For **local, self-custody signing** — a user signing their own
+transactions on their own machine — this is not a realistic threat: an
+attacker who can time the process can already read the key from memory.
+
+For **hosted signing** — a signing service, co-located serverless, a
+facilitator that signs for users, anything where a remote party submits
+signing requests and measures responses — it is a real key-compromise
+risk. A constant-time scalar multiplication is tracked as a prerequisite
+for that deployment; until it lands, keep signing local.
+
 ## Replay protection is in-memory and per-process
 
 `vesl-signing` ships `InMemoryReplayCache`, the stock `ReplayCache` impl. SIWN verification (`caip122::verify`) and any trust-anchor or AVS verifier built on `vesl-signing` use it to reject an already-seen signature.
