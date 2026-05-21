@@ -61,6 +61,17 @@ let msg = [Belt(1), Belt(2), Belt(3), Belt(4), Belt(5)];
 let (chal, sig) = schnorr_sign(&key, &msg)?;
 ```
 
+## Replay protection is in-memory and per-process
+
+`vesl-signing` ships `InMemoryReplayCache`, the stock `ReplayCache` impl. SIWN verification (`caip122::verify`) and any trust-anchor or AVS verifier built on `vesl-signing` use it to reject an already-seen signature.
+
+The cache holds its seen-set in process memory. Two consequences for running a verifier as a service:
+
+- **A restart empties it.** Nonces seen before a restart verify as fresh after one — the cache is a freshness window, not durable state.
+- **A load-balanced fleet runs one cache per instance.** A nonce rejected by instance A is unknown to instance B; the same signed message submitted once to each instance is accepted by each.
+
+No shared or persistent backend ships yet. Until one does, a multi-instance verifier must pin each client to a single instance with sticky sessions (load-balancer affinity) so its replay window stays consistent. Single-instance deployments are unaffected beyond the restart caveat. Where replay rejection has to survive a restart or span a fleet, back the cache with a uniqueness check at a durable layer.
+
 ## Math substrate
 
 `vesl-signing` vendors its math primitives (Goldilocks `Belt`, Tip5 hash, Cheetah curve, F6 sextic extension). The crate has zero dependencies on the `nockchain-math` upstream or on `nockchain-tip5-rs`. Rationale:
