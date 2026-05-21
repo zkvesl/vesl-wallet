@@ -90,8 +90,17 @@ pub use wire::{SchnorrPair, SchnorrSignatureJson};
 // ---------------------------------------------------------------------------
 
 /// Schnorr private key: a scalar in `[1, G_ORDER)`.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct SchnorrPrivateKey(UBig);
+
+// AUDIT 2026-05-20 M-12: redact the raw scalar. A derived Debug would
+// print the secret key verbatim through any `{:?}` (e.g. a stray
+// `tracing::debug!`), so the impl is hand-written to never touch it.
+impl std::fmt::Debug for SchnorrPrivateKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("SchnorrPrivateKey(<redacted>)")
+    }
+}
 
 impl SchnorrPrivateKey {
     pub fn new(scalar: UBig) -> Result<Self, SchnorrError> {
