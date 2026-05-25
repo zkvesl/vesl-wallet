@@ -1,5 +1,4 @@
 # vesl-wallet code owners.
-# Until the team grows, all paths are owned by the founder + Engineer 1.
-# Pending founder confirmation of GitHub handles.
+# Single-maintainer ownership until the team grows.
 
-* @TODO-founder-handle @TODO-engineer-1-handle
+* @sobchek
