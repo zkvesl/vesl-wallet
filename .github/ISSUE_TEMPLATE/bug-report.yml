@@ -1,0 +1,57 @@
+name: Bug report
+description: A behavior in vesl-signing, vesl-wallet, or vesl-wallet-spec that doesn't match what the code, rustdoc, or SPEC.md says it should do.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug.
+
+        **Security issues do not belong here.** Anything that compromises
+        signature soundness, key derivation, replay protection, side-channel
+        resistance, or any other property in `SECURITY.md` scope — report
+        privately via
+        [GitHub Security Advisories](https://github.com/zkvesl/vesl-wallet/security/advisories/new).
+  - type: input
+    id: surface
+    attributes:
+      label: Surface
+      description: vesl-signing module / vesl-wallet API / spec contradiction?
+      placeholder: e.g. "vesl-signing/src/caip122.rs verify" or "SPEC.md §3"
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you observe? What did you expect (per code/docs)?
+      placeholder: |
+        I called [...] with [...] and got [...].
+        I expected [...] per rustdoc / SPEC.md / CHANGELOG.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Shortest Rust snippet or test that triggers the bug.
+      render: rust
+    validations:
+      required: false
+  - type: input
+    id: commit
+    attributes:
+      label: Commit / version
+      description: vesl-wallet SHA on `dev`, release tag, or downstream pin.
+      placeholder: e.g. "dev@880b77c" or "v0.1.0-beta.1"
+    validations:
+      required: true
+  - type: textarea
+    id: features
+    attributes:
+      label: Feature gates
+      description: Which `vesl-signing` features were enabled? (default = `[json, siwn]`)
+      placeholder: e.g. "default-features=false, features=[\"json\"]"
+    validations:
+      required: false

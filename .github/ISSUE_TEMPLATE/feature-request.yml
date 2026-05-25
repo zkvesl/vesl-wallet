@@ -1,0 +1,49 @@
+name: Feature request
+description: A new capability for vesl-signing, vesl-wallet, or vesl-wallet-spec.
+title: "[feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Lead with the problem. Crypto API surface gets evaluated against
+        the threat model in `SECURITY.md` — keep that in mind when proposing.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do that the current API doesn't support?
+      placeholder: |
+        I'm integrating [...] and need [...] but vesl-signing / vesl-wallet
+        currently [...].
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed shape (optional)
+      description: |
+        A new public API, a new domain separator, a new role, a new
+        derivation path, a new CAIP-122 extension — whatever fits.
+    validations:
+      required: false
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What did you try first? What didn't fit, and why?
+    validations:
+      required: false
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      description: Where does this live?
+      options:
+        - vesl-signing (Schnorr, Tip5, CAIP-122, domain separators)
+        - vesl-wallet (HD derivation, BIP-39 flow, per-role signers)
+        - vesl-wallet-spec (path constants, role assignments, SPEC.md)
+        - Docs only
+        - Not sure
+    validations:
+      required: true
