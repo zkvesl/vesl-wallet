@@ -18,7 +18,7 @@ This is a workspace bundle. It ships three independently-`cargo add`-able crates
 
 ```toml
 [dependencies]
-vesl-wallet = { git = "https://github.com/zkvesl/vesl-wallet", tag = "v0.1.0" }
+vesl-wallet = { git = "https://github.com/zkvesl/vesl-wallet", tag = "v0.0.0" }
 ```
 
 ```rust
@@ -48,7 +48,7 @@ The repo is named after its headline crate (`vesl-wallet`), but **`vesl-signing`
 
 ```toml
 [dependencies]
-vesl-signing = { git = "https://github.com/zkvesl/vesl-wallet", tag = "v0.1.0" }
+vesl-signing = { git = "https://github.com/zkvesl/vesl-wallet", tag = "v0.0.0" }
 ```
 
 ```rust
