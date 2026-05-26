@@ -402,7 +402,7 @@ dependencies = [
 
 [[package]]
 name = "vesl-signing"
-version = "0.0.0"
+version = "0.1.0-beta.1"
 dependencies = [
  "anyhow",
  "base64",
@@ -417,7 +417,7 @@ dependencies = [
 
 [[package]]
 name = "vesl-wallet"
-version = "0.0.0"
+version = "0.1.0-beta.1"
 dependencies = [
  "bip39",
  "ibig",
@@ -431,7 +431,7 @@ dependencies = [
 
 [[package]]
 name = "vesl-wallet-spec"
-version = "0.0.0"
+version = "0.1.0-beta.1"
 
 [[package]]
 name = "wasm-bindgen"
