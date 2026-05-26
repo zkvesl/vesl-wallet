@@ -42,8 +42,8 @@ pub enum SchnorrError {
     Curve(#[from] CheetahError),
     #[error("scalar chunk exceeds u32: {0}")]
     ChunkOverflow(u64),
-    #[error("scalar chunk is not decimal: {0}")]
-    BadChunk(String),
+    #[error("scalar chunk {0} is not a decimal integer")]
+    BadChunk(usize),
     #[error("base58 pubkey decode failed: {0}")]
     BadPubkey(String),
 }
@@ -90,8 +90,23 @@ pub use wire::{SchnorrPair, SchnorrSignatureJson};
 // ---------------------------------------------------------------------------
 
 /// Schnorr private key: a scalar in `[1, G_ORDER)`.
-#[derive(Clone, Debug)]
+///
+/// AUDIT 2026-05-20 M-13: the scalar is an `ibig::UBig` (heap bignum, no
+/// `Zeroize` impl) — it is *not* wiped on drop. Cleanly zeroizing it needs
+/// a byte-backed key representation (`Zeroizing<[u8; 32]>` materialized to
+/// `UBig` transiently); that refactor was deferred. The root 64-byte seed
+/// and the BIP-39 mnemonic these descend from ARE zeroized.
+#[derive(Clone)]
 pub struct SchnorrPrivateKey(UBig);
+
+// AUDIT 2026-05-20 M-12: redact the raw scalar. A derived Debug would
+// print the secret key verbatim through any `{:?}` (e.g. a stray
+// `tracing::debug!`), so the impl is hand-written to never touch it.
+impl std::fmt::Debug for SchnorrPrivateKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("SchnorrPrivateKey(<redacted>)")
+    }
+}
 
 impl SchnorrPrivateKey {
     pub fn new(scalar: UBig) -> Result<Self, SchnorrError> {
@@ -134,8 +149,14 @@ impl SchnorrPrivateKey {
         std::array::from_fn(|i| Belt(chunks[i] as u64))
     }
 
-    pub fn public_key(&self) -> CheetahPoint {
-        ch_scal_big(&self.0, &A_GEN).expect("pk = sk·G on healthy curve")
+    /// The public key `sk · G`.
+    ///
+    /// AUDIT 2026-05-21 L-26: fallible rather than `.expect()`-panicking.
+    /// `ch_scal_big` cannot fail for a valid scalar against the fixed
+    /// generator, but returning a `Result` keeps a future change to the
+    /// curve constants from turning into a panic.
+    pub fn public_key(&self) -> Result<CheetahPoint, SchnorrError> {
+        Ok(ch_scal_big(&self.0, &A_GEN)?)
     }
 
     pub(crate) fn scalar(&self) -> &UBig {
@@ -159,7 +180,7 @@ pub(crate) fn scalar_to_t8(n: &UBig) -> [u32; 8] {
 pub(crate) fn t8_to_scalar(chunks: &[String; 8]) -> Result<UBig, SchnorrError> {
     let mut n = UBig::from(0u64);
     for (i, s) in chunks.iter().enumerate() {
-        let v: u64 = s.parse().map_err(|_| SchnorrError::BadChunk(s.clone()))?;
+        let v: u64 = s.parse().map_err(|_| SchnorrError::BadChunk(i))?;
         if v > u32::MAX as u64 {
             return Err(SchnorrError::ChunkOverflow(v));
         }
@@ -218,7 +239,7 @@ fn f6_to_belts(f: &crate::math::cheetah::F6lt) -> [Belt; 6] {
 /// deterministically from the transcript `[pk.x | pk.y | m | sk_t8]`
 /// (RFC6979-style).
 pub fn schnorr_sign(sk: &SchnorrPrivateKey, m: &[Belt; 5]) -> Result<(UBig, UBig), SchnorrError> {
-    let pk = sk.public_key();
+    let pk = sk.public_key()?;
     let sk_chunks = sk.to_t8();
 
     // Deterministic nonce = trunc_g_order(hash_varlen(pk.x | pk.y | m | sk_t8)).
@@ -264,6 +285,13 @@ pub fn schnorr_verify(
     chal: &UBig,
     sig: &UBig,
 ) -> Result<(), SchnorrError> {
+    // AUDIT 2026-05-19 H-14: reject an off-curve pubkey before any curve
+    // arithmetic. A caller that builds a CheetahPoint from raw F6
+    // coordinates (bypassing decode_signature's in_curve check) would
+    // otherwise get a soundness-broken "valid" result.
+    if !pubkey.in_curve() {
+        return Err(SchnorrError::BadSignature);
+    }
     let zero = UBig::from(0u64);
     if chal <= &zero || chal >= &*G_ORDER {
         return Err(SchnorrError::OutOfRange);
@@ -306,7 +334,7 @@ mod tests {
     #[test]
     fn sign_verify_roundtrip() {
         let sk = test_sk();
-        let pk = sk.public_key();
+        let pk = sk.public_key().unwrap();
         let m = [Belt(1), Belt(2), Belt(3), Belt(4), Belt(5)];
         let (c, s) = schnorr_sign(&sk, &m).unwrap();
         schnorr_verify(&pk, &m, &c, &s).unwrap();
@@ -315,7 +343,7 @@ mod tests {
     #[test]
     fn tampered_digest_rejected() {
         let sk = test_sk();
-        let pk = sk.public_key();
+        let pk = sk.public_key().unwrap();
         let m = [Belt(1), Belt(2), Belt(3), Belt(4), Belt(5)];
         let m2 = [Belt(1), Belt(2), Belt(3), Belt(4), Belt(6)];
         let (c, s) = schnorr_sign(&sk, &m).unwrap();
@@ -325,7 +353,7 @@ mod tests {
     #[test]
     fn tampered_sig_rejected() {
         let sk = test_sk();
-        let pk = sk.public_key();
+        let pk = sk.public_key().unwrap();
         let m = [Belt(1), Belt(2), Belt(3), Belt(4), Belt(5)];
         let (c, s) = schnorr_sign(&sk, &m).unwrap();
         let bad = &s + UBig::from(1u64);

@@ -10,7 +10,7 @@ use vesl_wallet_spec::{
 };
 
 use crate::error::WalletError;
-use crate::hd::{ckd_hardened, ckd_non_hardened, master_from_seed, ExtKey};
+use crate::hd::{ckd_hardened, ckd_non_hardened, master_from_seed, serialize_point, ExtKey};
 
 /// A derived key + the path it was derived at.
 ///
@@ -54,6 +54,25 @@ impl VeslWallet {
     /// Build a wallet from a BIP-39 mnemonic + optional passphrase. The
     /// passphrase corresponds to BIP-39's "25th word" extension; pass an
     /// empty string for no passphrase.
+    ///
+    /// **Audit 2026-05-25 L-32 — caller-owned secret residue.** The 64-byte
+    /// BIP-39 seed derived inside this function is zeroized on drop (via
+    /// the M-13 fix), and `bip39`'s `zeroize` feature scrubs internal
+    /// `Mnemonic` state. **But the caller's `phrase` and `passphrase`
+    /// strings are owned by the caller and survive in their original
+    /// buffers after this function returns** — `Mnemonic::parse` reads
+    /// the bytes; it does not mutate or wipe them. Process-memory dumps
+    /// (core file, debugger ptrace, /proc/&lt;pid&gt;/mem leak) recover the
+    /// mnemonic verbatim from the caller's storage even after the
+    /// wallet's own seed has been wiped.
+    ///
+    /// Callers handling secret mnemonics MUST keep `phrase` (and
+    /// `passphrase`, if non-empty) in a `zeroize::Zeroizing<String>`
+    /// buffer — or equivalent — that wipes on drop. This API does not
+    /// take ownership of those strings, and changing it to require
+    /// `Zeroizing<String>` would be an API-breaking change deferred
+    /// to a future major version. Until then, the wipe discipline lives
+    /// on the caller side.
     pub fn from_seed_phrase(
         phrase: &str,
         passphrase: &str,
@@ -61,7 +80,10 @@ impl VeslWallet {
     ) -> Result<Self, WalletError> {
         let mnemonic =
             Mnemonic::parse(phrase).map_err(|e| WalletError::InvalidMnemonic(e.to_string()))?;
-        let seed = mnemonic.to_seed_normalized(passphrase);
+        // AUDIT 2026-05-20 M-13: wipe the 64-byte BIP-39 seed once the
+        // master key is derived — it is the root secret every key
+        // descends from, so it must not linger in freed memory.
+        let seed = zeroize::Zeroizing::new(mnemonic.to_seed_normalized(passphrase));
         Self::from_seed(&seed, coin_type)
     }
 
@@ -98,11 +120,31 @@ impl VeslWallet {
         })
     }
 
-    /// Sign a 5-Belt message under the [`vesl-intent-v1`] separator with
-    /// the key at `m/44'/coin'/account'/ROLE_INTENT/0`. The default
-    /// entry point for intent-signing flows.
+    /// Schnorr-sign a 5-Belt message with the key at
+    /// `m/44'/coin'/account'/ROLE_INTENT/0`.
     ///
-    /// [`vesl-intent-v1`]: vesl_signing::domain::domain_separators::VESL_INTENT
+    /// **Audit 2026-05-25 H-26 — placeholder status.** Upstream intent
+    /// scripting has not landed yet: there is no verifier on the other
+    /// side to negotiate a canonical binding against, so this function is
+    /// a raw passthrough — it signs the 5-Belt input verbatim and does
+    /// **not** apply the [`VESL_INTENT`] domain separator internally.
+    /// The role-0 key slot is reserved; callers that need strict
+    /// cross-protocol separation today MUST hash their payload under
+    /// [`VESL_INTENT`] themselves (e.g. via
+    /// `vesl_signing::domain::hash_canonical`) before calling
+    /// `sign_intent`, or use a role whose binding is already wired
+    /// (`ROLE_X402` for x402 payments, etc.). The
+    /// `sign_intent_round_trip_via_schnorr` test in
+    /// `tests/round_trip.rs` shows the caller-side pre-hashing
+    /// convention this API expects today.
+    ///
+    /// When upstream intent scripting ships, this function will gain an
+    /// internal `tip5_with_domain(VESL_INTENT, ...)` step and accept the
+    /// raw payload bytes rather than the pre-hashed 5-Belt digest. The
+    /// signature shape will become spec-binding at that point — until
+    /// then, treat `sign_intent` as a thin role-0 Schnorr accessor.
+    ///
+    /// [`VESL_INTENT`]: vesl_signing::domain::domain_separators::VESL_INTENT
     pub fn sign_intent(
         &self,
         account: u32,
@@ -118,7 +160,7 @@ impl VeslWallet {
     /// chain-agnostic and self-contained.
     pub fn receiving_pubkey(&self, account: u32) -> Result<CheetahPoint, WalletError> {
         let path = DerivationPath::new(self.coin_type, account, ROLE_RECEIVING, 0);
-        Ok(self.derive(path)?.private_key.public_key())
+        Ok(self.derive(path)?.private_key.public_key()?)
     }
 
     /// An opaque 5-Belt fingerprint of the receiving pubkey. Useful as
@@ -129,7 +171,7 @@ impl VeslWallet {
         let pk = self.receiving_pubkey(account)?;
         let mut input = Vec::with_capacity(ADDRESS_SUBDOMAIN.len() + 97);
         input.extend_from_slice(ADDRESS_SUBDOMAIN);
-        input.extend_from_slice(&serialize_point_for_address(&pk));
+        input.extend_from_slice(&serialize_point(&pk));
         Ok(tip5_with_domain(domain_separators::VESL_HD, &input))
     }
 
@@ -169,17 +211,3 @@ impl VeslWallet {
 }
 
 const ADDRESS_SUBDOMAIN: &[u8] = b"vesl-hd:address\x00";
-
-/// Same byte layout as the HD module's `serialize_point` (kept private
-/// there). Re-implemented here to avoid widening the HD module's API.
-fn serialize_point_for_address(p: &CheetahPoint) -> [u8; 97] {
-    let mut out = [0u8; 97];
-    for (i, b) in p.x.0.iter().enumerate() {
-        out[i * 8..(i + 1) * 8].copy_from_slice(&b.0.to_le_bytes());
-    }
-    for (i, b) in p.y.0.iter().enumerate() {
-        out[48 + i * 8..48 + (i + 1) * 8].copy_from_slice(&b.0.to_le_bytes());
-    }
-    out[96] = u8::from(p.inf);
-    out
-}

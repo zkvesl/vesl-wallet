@@ -65,10 +65,24 @@ const TAG_NON_HARDENED: u8 = 0x01;
 
 /// Derived material: a Cheetah scalar and the chain code that lets the
 /// wallet derive its children.
-#[derive(Clone, Debug)]
+///
+/// AUDIT 2026-05-20 M-13: not zeroized on drop — `scalar` is an
+/// `ibig::UBig` with no `Zeroize` impl, so this UBig-containing struct
+/// cannot be cleanly `ZeroizeOnDrop` (see `SchnorrPrivateKey`). The root
+/// seed and mnemonic, the secrets these descend from, ARE zeroized.
+#[derive(Clone)]
 pub(crate) struct ExtKey {
     pub(crate) scalar: UBig,
     pub(crate) chain_code: ChainCode,
+}
+
+// AUDIT 2026-05-20 M-12: redact — both fields (the extended private
+// scalar and the BIP32 chain code) are secret key material; a derived
+// Debug would print them through any `{:?}`.
+impl std::fmt::Debug for ExtKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("ExtKey { <redacted> }")
+    }
 }
 
 impl ExtKey {
@@ -99,7 +113,7 @@ pub(crate) fn ckd_hardened(parent: &ExtKey, index: u32) -> Result<ExtKey, Wallet
     let mut transcript = Vec::with_capacity(1 + 32 + 32 + 4);
     transcript.push(TAG_HARDENED);
     transcript.extend_from_slice(&parent.chain_code);
-    transcript.extend_from_slice(&ubig_to_be_32(&parent.scalar));
+    transcript.extend_from_slice(&ubig_to_be_32(&parent.scalar)?);
     transcript.extend_from_slice(&hardened_index.to_be_bytes());
 
     let tweak = scalar_from_transcript(&transcript)?;
@@ -121,7 +135,7 @@ pub(crate) fn ckd_non_hardened(parent: &ExtKey, index: u32) -> Result<ExtKey, Wa
         return Err(WalletError::IndexOverflow(index));
     }
     let parent_sk = SchnorrPrivateKey::new(parent.scalar.clone())?;
-    let parent_pk = parent_sk.public_key();
+    let parent_pk = parent_sk.public_key()?;
 
     let mut transcript = Vec::with_capacity(1 + 32 + 97 + 4);
     transcript.push(TAG_NON_HARDENED);
@@ -188,19 +202,28 @@ fn chain_code_from_belts(belts: &[Belt; 5]) -> ChainCode {
 /// Big-endian 32-byte encoding of a `UBig` in `[0, G_ORDER)`. `G_ORDER`
 /// is ~255 bits so a 32-byte buffer always fits with the most-significant
 /// byte clear.
-fn ubig_to_be_32(n: &UBig) -> [u8; 32] {
+///
+/// AUDIT 2026-05-21 L-23: a `UBig` wider than 32 bytes would panic the
+/// `copy_from_slice` below — the `saturating_sub` offset clamps to 0, so
+/// the destination slice is shorter than `bytes`. Every `ExtKey` scalar is
+/// reduced mod `G_ORDER`, so this is unreachable in practice; return
+/// [`WalletError::ScalarTooWide`] rather than panic, for defence in depth.
+fn ubig_to_be_32(n: &UBig) -> Result<[u8; 32], WalletError> {
     let bytes = n.to_be_bytes();
+    if bytes.len() > 32 {
+        return Err(WalletError::ScalarTooWide);
+    }
     let mut out = [0u8; 32];
     let offset = 32usize.saturating_sub(bytes.len());
     out[offset..offset + bytes.len()].copy_from_slice(&bytes);
-    out
+    Ok(out)
 }
 
 /// Deterministic byte serialization of a Cheetah point: 6 × 8-byte
 /// little-endian Belts for `x`, then 6 × 8-byte for `y`, then a 1-byte
 /// `inf` flag. 97 bytes total. Used only as PRF input — never on the
 /// wire — so the serialization just needs to be a bijection.
-fn serialize_point(p: &CheetahPoint) -> [u8; 97] {
+pub(crate) fn serialize_point(p: &CheetahPoint) -> [u8; 97] {
     let mut out = [0u8; 97];
     for (i, b) in p.x.0.iter().enumerate() {
         out[i * 8..(i + 1) * 8].copy_from_slice(&b.0.to_le_bytes());

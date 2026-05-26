@@ -21,7 +21,7 @@
 //! - [`ROLE_RECEIVING`] (`1`) — receiving / payout address
 //! - [`ROLE_ENCRYPTION`](`2`) — encryption / delivery decryption (placeholder)
 //! - [`ROLE_SESSION`]   (`3`) — short-lived delegation / session keys
-//! - [`ROLE_X402`]      (`4`) — x402 spending keys (closes OD#1)
+//! - [`ROLE_X402`]      (`4`) — x402 spending keys
 //!
 //! Roles `5+` are reserved for future assignments — see `SPEC.md §5`.
 
@@ -33,8 +33,13 @@ pub const BIP44_PURPOSE: u32 = 44;
 
 /// Role 0 — long-lived intent signing key (Schnorr-over-Cheetah).
 ///
-/// Signs under the `vesl_signing::domain::domain_separators::VESL_INTENT`
-/// (`"vesl-intent-v1"`) Tip5 domain separator.
+/// Reserved for the `vesl_signing::domain::domain_separators::VESL_INTENT`
+/// (`"vesl-intent-v1"`) Tip5 domain separator. Upstream intent scripting
+/// has not landed yet, so the wallet's `sign_intent` accessor is currently
+/// a raw passthrough — callers needing cross-protocol separation today
+/// must hash under `VESL_INTENT` themselves. The role-0 path slot stays
+/// stable so future binding lands without an HD-tree migration. See
+/// `SPEC.md §2 Role 0` for the placeholder status and migration plan.
 pub const ROLE_INTENT: u32 = 0;
 
 /// Role 1 — receiving / payout address.
@@ -56,7 +61,7 @@ pub const ROLE_SESSION: u32 = 3;
 /// Role 4 — x402 spending keys.
 ///
 /// Signs under the `vesl_signing::domain::domain_separators::X402`
-/// (`"x402-nockchain-v2"`) Tip5 domain separator. Closes OD#1.
+/// (`"x402-nockchain-v2"`) Tip5 domain separator.
 pub const ROLE_X402: u32 = 4;
 
 /// Typed BIP44 5-level derivation path.
@@ -66,7 +71,7 @@ pub const ROLE_X402: u32 = 4;
 /// for HD key derivation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DerivationPath {
-    /// SLIP-44 coin_type (TBD upstream — see `SPEC.md §4` and OD#11).
+    /// SLIP-44 coin_type (TBD upstream — see `SPEC.md §4`).
     pub coin_type: u32,
     /// Per-agent account index.
     pub account: u32,
