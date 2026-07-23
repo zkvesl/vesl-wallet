@@ -72,9 +72,15 @@ This is fine for **local use** — sign on the caller's machine, mnemonic stays 
 
 `vesl-signing::replay::InMemoryReplayCache` rejects already-seen signatures by `(challenge, message_hash)`. SIWN verification (`caip122::verify`) and any trust-anchor or AVS verifier built on `vesl-signing` use `InMemoryReplayCache` to reject duplicates. The cache is in-memory and per-process — restart loses the seen-set. For multi-process or long-running verifiers, swap in a persistent backend implementing the `ReplayCache` trait.
 
+## Toolchain
+
+**Stable Rust.** `rust-toolchain.toml` pins `channel = "stable"`, and that's the point: hardware-wallet vendors and external consumers should not need a nightly toolchain to depend on this. Unlike the rest of the fleet — [vesl-core](https://github.com/zkvesl/vesl-core) and [vesl-nockup](https://github.com/zkvesl/vesl-nockup) both pin the nightly nockchain pins — vesl-wallet has no nockchain path-deps, no Hoon, and nothing to compile with honk. The fleet's nightly and `NOCK_PIN` don't apply here.
+
 ## Math substrate
 
-`vesl-signing` vendors `nockchain-math` and `nockchain-tip5-rs` into `crates/math/` for stable-toolchain consumers. The vendored copies track upstream releases via the pin file at `crates/math/PIN`. End-users get stable Rust, no nightly features, no upstream nockchain checkout.
+`vesl-signing` carries its own port of the Nockchain math primitives at `crates/vesl-signing/src/math/` — Goldilocks base field (`belt`), F6 inversion helpers (`bpoly`), the Cheetah curve (`cheetah`), and the Tip5 sponge (`tip5`). Constants and algorithms mirror `nockchain-math` upstream. Nothing is path-dep'd: no nockchain checkout, no nightly features.
+
+The cost of that choice is drift. Today it's caught by the inline tests in `math::cheetah::tests` and `math::tip5::tests`, which run against known reference values from nockchain-math's own suite. The fuller plan — a generated `parity_vectors_<sha>.json` fixture and a regen pipeline that names the upstream SHA it was cut against — is stubbed at `crates/vesl-signing/tests/parity_with_nockchain_math.rs` and deferred to v0.2.0, because building the generator needs the nightly that vendoring exists to avoid.
 
 ## Development
 
