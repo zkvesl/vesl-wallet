@@ -6,8 +6,22 @@
 //! "distinct inputs give distinct keys", "this role differs from that
 //! one". Not one pinned an actual key value. That is exactly the shape in
 //! which a wrong adoption of a standard is invisible: a construction that
-//! is SLIP-10-*shaped* but disagrees with the chain on any detail passes
-//! every relational test while deriving addresses nobody else can spend.
+//! is SLIP-10-*shaped* but disagrees with upstream on any detail passes
+//! every relational test while deriving the wrong keys.
+//!
+//! ⚠️ **What "wrong" means here, precisely.** Not *invalid*. The chain
+//! never validates how a key was derived: a lock is a `%pkh`, a hash of a
+//! public key, and `slip10.hoon` is imported by the wallet app and its
+//! tests alone — by nothing on any consensus path. A non-conforming
+//! derivation still yields a perfectly good Cheetah keypair that signs
+//! and spends normally, which is why nothing on a test network would ever
+//! have complained. What breaks is **interoperability and recovery**: the
+//! same seed phrase in `nockchain-wallet`, in iris, or in a future
+//! hardware wallet produces a DIFFERENT key. So a refund sent to
+//! `Authorization.from` lands where its owner cannot reach it, and an
+//! operator importing their phrase into the reference wallet finds an
+//! empty account. That is the failure this file exists to prevent, and it
+//! is invisible to every other test in the crate.
 //!
 //! ## What "conformance" means here
 //!
@@ -63,7 +77,9 @@ fn master(mnemonic: &str) -> ExtKey {
 }
 
 fn b58(s: &str) -> Vec<u8> {
-    bs58::decode(s).into_vec().expect("base58 test vector decodes")
+    bs58::decode(s)
+        .into_vec()
+        .expect("base58 test vector decodes")
 }
 
 fn assert_scalar(label: &str, got: &UBig, want_b58: &str) {
@@ -101,11 +117,11 @@ mod reference_wallet {
     #[test]
     fn master_key_matches_the_reference_wallet() {
         let m = master(REFERENCE_MNEMONIC);
-        assert_scalar("master", &m.scalar, "3MoHxVXWAr9qny12Sw8ZZtrgEBFcZegQQVkwYyePb9LZ");
+        assert_scalar(
+            "master", &m.scalar, "3MoHxVXWAr9qny12Sw8ZZtrgEBFcZegQQVkwYyePb9LZ",
+        );
         assert_chain_code(
-            "master",
-            &m.chain_code,
-            "3NhBRdy7vRw8vKQ5RnR3CNcD43WDn5Ky7mhhotqUcaiR",
+            "master", &m.chain_code, "3NhBRdy7vRw8vKQ5RnR3CNcD43WDn5Ky7mhhotqUcaiR",
         );
     }
 
@@ -119,13 +135,10 @@ mod reference_wallet {
     fn non_hardened_child_matches_the_reference_wallet() {
         let child = ckd_non_hardened(&master(REFERENCE_MNEMONIC), 0).expect("child derives");
         assert_scalar(
-            "non-hardened child 0",
-            &child.scalar,
-            "6AifHLAuT1MxnFsoCwjKNFaBze91DXFDV1rRLefkzPEK",
+            "non-hardened child 0", &child.scalar, "6AifHLAuT1MxnFsoCwjKNFaBze91DXFDV1rRLefkzPEK",
         );
         assert_chain_code(
-            "non-hardened child 0",
-            &child.chain_code,
+            "non-hardened child 0", &child.chain_code,
             "8NL75o1uwMpGFcLRrnFt9adTyExwK9MP6RL8h2jAKEVD",
         );
     }
@@ -143,14 +156,10 @@ mod reference_wallet {
     fn hardened_child_matches_the_reference_wallet_through_the_retry_branch() {
         let child = ckd_hardened(&master(REFERENCE_MNEMONIC), 0).expect("child derives");
         assert_scalar(
-            "hardened child 0",
-            &child.scalar,
-            "CpMAmcgN1V6Majtx2HC7ULLXD9psA3Gg3nMye3JpKpH",
+            "hardened child 0", &child.scalar, "CpMAmcgN1V6Majtx2HC7ULLXD9psA3Gg3nMye3JpKpH",
         );
         assert_chain_code(
-            "hardened child 0",
-            &child.chain_code,
-            "8x7zh5LQA7tsFQQ3qsPfYGgFzQkoizGhLqLK7iKTGj3R",
+            "hardened child 0", &child.chain_code, "8x7zh5LQA7tsFQQ3qsPfYGgFzQkoizGhLqLK7iKTGj3R",
         );
     }
 
@@ -212,11 +221,21 @@ mod five_role_path {
 
     /// The scalar at `m/44'/coin'/0'/ROLE/0` for each of the five roles.
     const ROLE_SCALARS: [(u32, &str); 5] = [
-        (ROLE_INTENT, "4db1adda8328b429df27572da7407f0f8feeb65c0c7d1f81df46fa8f74735c5b"),
-        (ROLE_RECEIVING, "18c785e1a59a801facc613cd94f8085c598fdbe3df4bf90605f1217396cc382f"),
-        (ROLE_ENCRYPTION, "30a119c98cb572c17297d5ec302ea228fa8467bca4c4712c1be58458a9179234"),
-        (ROLE_SESSION, "2ca93b30d1d843132820cee8c8c7ea53fb11109f97fc0de03959923ba4e7cdb9"),
-        (ROLE_X402, "685c44c433a5246cfd707bad021f09fa7c36a90b9301d949fc769e6433a9d326"),
+        (
+            ROLE_INTENT, "4db1adda8328b429df27572da7407f0f8feeb65c0c7d1f81df46fa8f74735c5b",
+        ),
+        (
+            ROLE_RECEIVING, "18c785e1a59a801facc613cd94f8085c598fdbe3df4bf90605f1217396cc382f",
+        ),
+        (
+            ROLE_ENCRYPTION, "30a119c98cb572c17297d5ec302ea228fa8467bca4c4712c1be58458a9179234",
+        ),
+        (
+            ROLE_SESSION, "2ca93b30d1d843132820cee8c8c7ea53fb11109f97fc0de03959923ba4e7cdb9",
+        ),
+        (
+            ROLE_X402, "685c44c433a5246cfd707bad021f09fa7c36a90b9301d949fc769e6433a9d326",
+        ),
     ];
 
     fn hex_to_ubig(s: &str) -> UBig {
