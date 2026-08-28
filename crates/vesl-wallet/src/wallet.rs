@@ -28,7 +28,7 @@ pub struct DerivedKey {
 
 /// High-level Hull-author wallet.
 ///
-/// Wraps a BIP-39 master seed + a Cheetah-BIP32-over-Tip5 derivation
+/// Wraps a BIP-39 master seed + a SLIP-10-over-Cheetah derivation
 /// tree and exposes per-role convenience signers driven by the constants
 /// in [`vesl_wallet_spec`].
 ///

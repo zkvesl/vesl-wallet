@@ -1,6 +1,6 @@
 # vesl-wallet
 
-A Rust wallet library for Nockchain — Schnorr-over-Cheetah signing, BIP-44 layout, BIP-39 + Cheetah-BIP32-over-Tip5 HD derivation.
+A Rust wallet library for Nockchain — Schnorr-over-Cheetah signing, BIP-44 layout, BIP-39 + SLIP-10-over-Cheetah HD derivation matching nockchain's reference wallet.
 
 > **Library, not service.** `cargo add vesl-wallet` and run it in-process. No hosted backend, no remote signer. Mnemonics, keys, and signing happen on the caller's machine.
 

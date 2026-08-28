@@ -2,7 +2,7 @@
 //!
 //! Imports only what's reachable from `vesl_wallet::*` and `vesl_signing::*`
 //! (no `crate::` paths). Guards the surface against regressions and
-//! exercises the BIP-39 + Cheetah-BIP32-over-Tip5 path end-to-end.
+//! exercises the BIP-39 + SLIP-10-over-Cheetah path end-to-end.
 
 use vesl_signing::domain::{domain_separators, hash_canonical};
 use vesl_signing::prelude::Belt;

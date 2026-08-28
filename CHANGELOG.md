@@ -6,6 +6,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — `vesl-wallet`: HD derivation now conforms to nockchain's own SLIP-10
+
+- **`hd.rs` replaces the custom Cheetah-BIP32-over-Tip5 construction with SLIP-10 / HMAC-SHA512**, transcribed arm-by-arm from `nockchain/hoon/common/slip10.hoon` (the implementation nockchain's own reference wallet derives through, `hoon/apps/wallet/lib/s10.hoon:41`). Same seed phrase now yields the same keys as `nockchain-wallet`, which was not previously true.
+  - Master derivation keyed on the 14-byte `Nockchain seed` domain separator (`slip10.hoon:38`).
+  - Hardened CKD hashes `0x00 || ser256(k_par) || ser32(i)` (`:153`); non-hardened hashes `ser-a-pt(K_par) || ser32(i)` (`:155`).
+  - New `ser_a_pt` implements upstream's point encoding (`ztd/three.hoon:1723`): `0x01 || y5..y0 || x5..x0`, big-endian limbs. It is deliberately **not** `serialize_point`, which remains the local, chain-agnostic fingerprint encoding used by `receiving_fingerprint`.
+  - The invalid-key retry loop (`:162-181`) is implemented rather than surfaced as an error. It is not defensive: the Cheetah group order is 255 bits, so a derived value is invalid with probability **0,5197** and the branch fires on more than half of all derivation steps.
+- ⚠️ **This moves every address.** Existing keys derived by prior versions do not survive the change; there is no migration path other than re-deriving.
+- **`WalletError::InvalidScalar` is no longer reachable from derivation** (the retry loop rehashes instead). Retained as public API.
+- New dependencies `hmac` and `sha2`, adding 10 crates transitively (`bip39 2.2.2` hashes through `bitcoin_hashes`, so neither was already in the tree).
+
+### Added — `vesl-wallet`
+
+- **`src/slip10_conformance.rs` — the frozen cross-implementation KAT.** Pins the master key, a non-hardened child and a hardened child against `nockchain-wallet` output. Before it, every derivation test was relational, which is exactly the shape in which a SLIP-10-*shaped* but non-conforming construction passes everything while deriving unspendable addresses. The hardened vector requires one pass through the retry branch, so that path is pinned rather than merely present; the non-hardened vector is the only thing anywhere pinning the Cheetah limb order.
+- **`tools/slip10_vectors.py`** — regenerates the vectors directly from `slip10.hoon` and self-tests against the same reference output, so the frozen constants stay explainable and upstream drift is detectable in seconds.
+
 ### Added — `vesl-signing`
 
 - **`vesl-signing` crate** lifted from `x402-nockchain/crates/x402-nockchain-crypto/`:
