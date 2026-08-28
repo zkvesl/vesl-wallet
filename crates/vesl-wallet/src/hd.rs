@@ -401,12 +401,8 @@ mod tests {
     #[test]
     fn ser_a_pt_limb_order_is_y_then_x_most_significant_first() {
         let pt = CheetahPoint {
-            x: F6lt([
-                Belt(1), Belt(2), Belt(3), Belt(4), Belt(5), Belt(6),
-            ]),
-            y: F6lt([
-                Belt(7), Belt(8), Belt(9), Belt(10), Belt(11), Belt(12),
-            ]),
+            x: F6lt([Belt(1), Belt(2), Belt(3), Belt(4), Belt(5), Belt(6)]),
+            y: F6lt([Belt(7), Belt(8), Belt(9), Belt(10), Belt(11), Belt(12)]),
             inf: false,
         };
         let out = ser_a_pt(&pt);
