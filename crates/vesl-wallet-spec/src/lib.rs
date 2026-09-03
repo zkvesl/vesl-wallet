@@ -22,8 +22,9 @@
 //! - [`ROLE_ENCRYPTION`](`2`) — encryption / delivery decryption (placeholder)
 //! - [`ROLE_SESSION`]   (`3`) — short-lived delegation / session keys
 //! - [`ROLE_X402`]      (`4`) — x402 spending keys
+//! - [`ROLE_VOID`]      (`5`) — x402 hold-void (cancellation) keys
 //!
-//! Roles `5+` are reserved for future assignments — see `SPEC.md §5`.
+//! Roles `6+` are reserved for future assignments — see `SPEC.md §5`.
 
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
@@ -63,6 +64,35 @@ pub const ROLE_SESSION: u32 = 3;
 /// Signs under the `vesl_signing::domain::domain_separators::X402`
 /// (`"x402-nockchain-v2"`) Tip5 domain separator.
 pub const ROLE_X402: u32 = 4;
+
+/// Role 5 — x402 **hold-void** keys: the dedicated, discardable key that
+/// authorises cancelling one parked payment.
+///
+/// ⚑ *In plain terms: a throwaway key whose only job is to pre-authorise
+/// giving one payment back. It signs once, immediately after the payment
+/// lands, and is then useless.*
+///
+/// ⛔⛔ **IT MUST BE DERIVED AT THE SAME INDEX AS THE PAYMENT KEY IT
+/// CANCELS, AND THAT IS A PRIVACY REQUIREMENT, NOT A CONVENIENCE.** A spend
+/// publishes the signer's PUBKEY in its witness, so a void key that did not
+/// rotate would be a permanent, public, on-chain identifier joining every job
+/// that buyer ever paid for — an exposure the per-job secret it replaced
+/// structurally did not have (x402 `PLAN_B §E1`, `§E3`).
+///
+/// ⛔ It is a **separate role** rather than another index under
+/// [`ROLE_X402`] precisely so the two key spaces cannot collide: at one
+/// role, "the void key for payment `i`" would have to be some other index
+/// `j`, and `j` is a payment key for some other job.
+///
+/// ⛔⛔ **THE VOID KEY MUST NEVER EQUAL THE PAYMENT KEY.** The hold's void
+/// branch and its capture branch are both 2-of-2 with the platform, and a
+/// spend's signed digest covers its outputs and fee and **not the branch it
+/// reveals** — so while the two branches named one buyer key, the buyer's
+/// capture co-signature also spent the *void* branch, letting the platform be
+/// paid while publishing no delivery key. A live node accepted exactly that,
+/// twice, before the fix (x402 `records/S118`). Separate roles make the
+/// collision unreachable by construction rather than refused by a check.
+pub const ROLE_VOID: u32 = 5;
 
 /// Typed BIP44 5-level derivation path.
 ///
@@ -105,6 +135,32 @@ mod tests {
         assert_eq!(ROLE_ENCRYPTION, 2);
         assert_eq!(ROLE_SESSION, 3);
         assert_eq!(ROLE_X402, 4);
+        assert_eq!(ROLE_VOID, 5);
+    }
+
+    /// ⛔⛔ **THE ONE PROPERTY THE VOID KEY EXISTS FOR: AT EVERY INDEX IT IS
+    /// A DIFFERENT PATH FROM THE PAYMENT KEY IT CANCELS.**
+    ///
+    /// ⚑ *In plain terms: the key that cancels a payment must never be the
+    /// key that made it.* If the two coincided, the buyer's co-signature on
+    /// the payout would also authorise the cancellation, and the platform
+    /// could take the money without publishing the key that delivers the
+    /// answer — measured accepted at consensus, twice, before the fix.
+    ///
+    /// ⛔ Asserted **over a range of indices, not at index 0**. A void key
+    /// rotates with the payment key, so "they differ" has to hold at every
+    /// index; checking one would pass for a `ROLE_VOID` that was accidentally
+    /// defined as `ROLE_X402` with an offset.
+    #[test]
+    fn the_void_path_is_never_the_payment_path_at_any_index() {
+        for index in [0u32, 1, 2, 7, 4096, u32::MAX] {
+            let payment = DerivationPath::new(0, 0, ROLE_X402, index);
+            let void = DerivationPath::new(0, 0, ROLE_VOID, index);
+            assert_ne!(
+                payment, void,
+                "the void key must not be the payment key at index {index}"
+            );
+        }
     }
 
     #[test]

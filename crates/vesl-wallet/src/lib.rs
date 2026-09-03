@@ -53,7 +53,7 @@ pub use error::WalletError;
 // `vesl_wallet::*` without a second `use vesl_wallet_spec::...` line.
 pub use vesl_wallet_spec::{
     DerivationPath, BIP44_PURPOSE, ROLE_ENCRYPTION, ROLE_INTENT, ROLE_RECEIVING, ROLE_SESSION,
-    ROLE_X402,
+    ROLE_VOID, ROLE_X402,
 };
 pub use wallet::{DerivedKey, VeslWallet};
 

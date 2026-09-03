@@ -50,7 +50,8 @@
 use ibig::UBig;
 use vesl_signing::schnorr::SchnorrPrivateKey;
 use vesl_wallet_spec::{
-    DerivationPath, ROLE_ENCRYPTION, ROLE_INTENT, ROLE_RECEIVING, ROLE_SESSION, ROLE_X402,
+    DerivationPath, ROLE_ENCRYPTION, ROLE_INTENT, ROLE_RECEIVING, ROLE_SESSION, ROLE_VOID,
+    ROLE_X402,
 };
 
 use crate::hd::{ckd_hardened, ckd_non_hardened, master_from_seed, ser_a_pt, ExtKey};
@@ -219,8 +220,23 @@ mod five_role_path {
         ),
     ];
 
-    /// The scalar at `m/44'/coin'/0'/ROLE/0` for each of the five roles.
-    const ROLE_SCALARS: [(u32, &str); 5] = [
+    /// The scalar at `m/44'/coin'/0'/ROLE/0` for each of the six roles.
+    ///
+    /// ⛔⛔ **WHAT THIS TABLE IS, AND WHAT IT IS NOT — stated because the
+    /// module header's *"agrees with the chain's own reference wallet"* is
+    /// true of the MASTER and the DEPTH-1 children and is NOT true of these.**
+    /// The role step is NON-HARDENED (`ckd_non_hardened` below), and the
+    /// regeneration oracle `tools/slip10_vectors.py` deliberately does not
+    /// implement that branch — it needs Cheetah point arithmetic, which the
+    /// script says in its own scope note it will not re-transcribe. So every
+    /// entry here was produced by THIS crate and is a **regression pin**: it
+    /// freezes the walk against future change, and it is not an independent
+    /// cross-check. Ground truth for the non-hardened branch is the reference
+    /// wallet's own frozen depth-1 vector, asserted separately.
+    ///
+    /// ⚑ `ROLE_VOID` was added 2026-09-03 (x402 `U2`) and is pinned to exactly
+    /// that standard — no weaker than the five beside it, and no stronger.
+    const ROLE_SCALARS: [(u32, &str); 6] = [
         (
             ROLE_INTENT, "4db1adda8328b429df27572da7407f0f8feeb65c0c7d1f81df46fa8f74735c5b",
         ),
@@ -235,6 +251,9 @@ mod five_role_path {
         ),
         (
             ROLE_X402, "685c44c433a5246cfd707bad021f09fa7c36a90b9301d949fc769e6433a9d326",
+        ),
+        (
+            ROLE_VOID, "68d592b10de5939f4ad0311fe00c675c2caa43f4a8be0ccd48d02362382be52d",
         ),
     ];
 

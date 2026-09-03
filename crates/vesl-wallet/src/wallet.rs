@@ -6,7 +6,7 @@ use vesl_signing::domain::{domain_separators, tip5_with_domain};
 use vesl_signing::prelude::Belt;
 use vesl_signing::schnorr::{schnorr_sign, CheetahPoint, SchnorrPrivateKey};
 use vesl_wallet_spec::{
-    DerivationPath, BIP44_PURPOSE, ROLE_INTENT, ROLE_RECEIVING, ROLE_SESSION, ROLE_X402,
+    DerivationPath, BIP44_PURPOSE, ROLE_INTENT, ROLE_RECEIVING, ROLE_SESSION, ROLE_VOID, ROLE_X402,
 };
 
 use crate::error::WalletError;
@@ -203,6 +203,36 @@ impl VeslWallet {
         index: u32,
     ) -> Result<SchnorrPrivateKey, WalletError> {
         let path = DerivationPath::new(self.coin_type, account, ROLE_X402, index);
+        Ok(self.derive(path)?.private_key)
+    }
+
+    /// Schnorr private key at `m/44'/coin'/account'/ROLE_VOID/index` — the
+    /// dedicated, discardable key that pre-authorises cancelling ONE parked
+    /// payment (x402 `PLAN_B §D2.2`, `§E1`).
+    ///
+    /// ⚑ *In plain terms: the throwaway key that lets a payment be given back.
+    /// It signs one cancellation, right after the payment lands, and is then
+    /// useless — so nothing has to be remembered for it.*
+    ///
+    /// ⛔⛔ **CALL IT AT THE SAME `index` AS [`Self::payment_signer`] FOR THE
+    /// JOB IT CANCELS, AND THAT IS NOT AN OPTIMISATION — IT IS THE PRIVACY
+    /// REQUIREMENT.** A spend publishes the signer's pubkey in its witness. A
+    /// void key held fixed across jobs would therefore be a permanent, public,
+    /// on-chain label joining every payment that buyer ever made — an exposure
+    /// the per-job *secret* this key replaced structurally did not have
+    /// (`§E3`). Passing the payment's own index makes the void key rotate with
+    /// it at **zero extra retention**: the index is already the one thing the
+    /// wallet must remember per job.
+    ///
+    /// ⛔ `§E2`'s *"derive from index 0, not the rotating payment index"*
+    /// argument applies to non-key secrets and **must not be cited here.**
+    ///
+    /// ⭐ The key is returned rather than wrapped in a signing API on purpose:
+    /// the caller that signs a void must first rebuild the spend and check
+    /// every output pays the buyer itself. That check is the whole guarantee
+    /// and it does not belong in the wallet, which cannot see a chain.
+    pub fn void_signer(&self, account: u32, index: u32) -> Result<SchnorrPrivateKey, WalletError> {
+        let path = DerivationPath::new(self.coin_type, account, ROLE_VOID, index);
         Ok(self.derive(path)?.private_key)
     }
 }
