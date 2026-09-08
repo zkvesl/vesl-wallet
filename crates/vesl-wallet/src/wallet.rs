@@ -6,7 +6,8 @@ use vesl_signing::domain::{domain_separators, tip5_with_domain};
 use vesl_signing::prelude::Belt;
 use vesl_signing::schnorr::{schnorr_sign, CheetahPoint, SchnorrPrivateKey};
 use vesl_wallet_spec::{
-    DerivationPath, BIP44_PURPOSE, ROLE_INTENT, ROLE_RECEIVING, ROLE_SESSION, ROLE_VOID, ROLE_X402,
+    DerivationPath, BIP44_PURPOSE, ROLE_INTENT, ROLE_RECEIVING, ROLE_SESSION, ROLE_VOID,
+    ROLE_WITHDRAWAL, ROLE_X402,
 };
 
 use crate::error::WalletError;
@@ -233,6 +234,30 @@ impl VeslWallet {
     /// and it does not belong in the wallet, which cannot see a chain.
     pub fn void_signer(&self, account: u32, index: u32) -> Result<SchnorrPrivateKey, WalletError> {
         let path = DerivationPath::new(self.coin_type, account, ROLE_VOID, index);
+        Ok(self.derive(path)?.private_key)
+    }
+
+    /// The key at `m/44'/coin'/account'/ROLE_WITHDRAWAL/index` — where a swept
+    /// pool lands when the user asks for their money back.
+    ///
+    /// ⚑ *In plain terms: the key that owns a cash-out. A coin here is on its
+    /// way out of the wallet; it is never handed to a job and never split back
+    /// into spending coins.*
+    ///
+    /// ⛔ The role is what makes that true, not a tag — see
+    /// [`ROLE_WITHDRAWAL`]. A sweep landing at a [`ROLE_RECEIVING`] address
+    /// would be re-read as a fresh deposit and fanned back into the pool.
+    ///
+    /// ⚑ `index` rotates per withdrawal by recommendation, not by requirement:
+    /// unlike a void key this one is not published per job, so it carries no
+    /// unlinkability obligation. Rotating isolates each cash-out, so a second
+    /// coin arriving at one reads as an anomaly.
+    pub fn withdrawal_signer(
+        &self,
+        account: u32,
+        index: u32,
+    ) -> Result<SchnorrPrivateKey, WalletError> {
+        let path = DerivationPath::new(self.coin_type, account, ROLE_WITHDRAWAL, index);
         Ok(self.derive(path)?.private_key)
     }
 }

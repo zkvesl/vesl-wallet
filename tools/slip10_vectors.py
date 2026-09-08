@@ -54,8 +54,11 @@ ROLES = {
     # x402 hold-void (cancellation) keys -- vesl-wallet-spec ROLE_VOID.
     # NOTE: the role step is NON-HARDENED, so this script does not derive
     # role scalars at all (see the scope note above); the map is kept in step
-    # with the spec crate so a reader is not told there are five roles.
+    # with the spec crate so a reader is not told there are fewer roles than
+    # there are.
     "ROLE_VOID": 5,
+    # x402 withdrawal: where a swept spending pool lands. Same note applies.
+    "ROLE_WITHDRAWAL": 6,
 }
 
 B58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"

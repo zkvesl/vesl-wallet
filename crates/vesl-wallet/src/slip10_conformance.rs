@@ -37,7 +37,7 @@
 //! The reference vectors pin the master key and DEPTH-1 children. The
 //! public API only ever walks the full five-level BIP-44 path, so an
 //! integration test structurally cannot express them.
-//! [`five_role_path`] does use the public API, and asserts the two agree.
+//! [`role_path`] does use the public API, and asserts the two agree.
 //!
 //! ## Regenerating
 //!
@@ -51,7 +51,7 @@ use ibig::UBig;
 use vesl_signing::schnorr::SchnorrPrivateKey;
 use vesl_wallet_spec::{
     DerivationPath, ROLE_ENCRYPTION, ROLE_INTENT, ROLE_RECEIVING, ROLE_SESSION, ROLE_VOID,
-    ROLE_X402,
+    ROLE_WITHDRAWAL, ROLE_X402,
 };
 
 use crate::hd::{ckd_hardened, ckd_non_hardened, master_from_seed, ser_a_pt, ExtKey};
@@ -185,7 +185,7 @@ mod reference_wallet {
     }
 }
 
-mod five_role_path {
+mod role_path {
     //! Regression pins for `m/44'/coin'/account'/role/index`, the walk
     //! `VeslWallet::derive` performs (`wallet.rs:112-116`).
     //!
@@ -220,7 +220,7 @@ mod five_role_path {
         ),
     ];
 
-    /// The scalar at `m/44'/coin'/0'/ROLE/0` for each of the six roles.
+    /// The scalar at `m/44'/coin'/0'/ROLE/0` for each of the seven roles.
     ///
     /// ⛔⛔ **WHAT THIS TABLE IS, AND WHAT IT IS NOT — stated because the
     /// module header's *"agrees with the chain's own reference wallet"* is
@@ -234,9 +234,15 @@ mod five_role_path {
     /// cross-check. Ground truth for the non-hardened branch is the reference
     /// wallet's own frozen depth-1 vector, asserted separately.
     ///
-    /// ⚑ `ROLE_VOID` was added 2026-09-03 (x402 `U2`) and is pinned to exactly
-    /// that standard — no weaker than the five beside it, and no stronger.
-    const ROLE_SCALARS: [(u32, &str); 6] = [
+    /// ⚑ `ROLE_VOID` was added 2026-09-03 (x402 `U2`) and `ROLE_WITHDRAWAL`
+    /// 2026-09-08 (x402 row 24); both are pinned to exactly that standard — no
+    /// weaker than the roles beside them, and no stronger.
+    ///
+    /// ⛔ **THE LENGTH ANNOTATION IS THE GUARD.** Adding a role constant
+    /// without adding a row here is a compile error, which is the only reason
+    /// this table has never silently fallen behind the spec crate the way
+    /// `tests/round_trip.rs`'s hand-written `5` did.
+    const ROLE_SCALARS: [(u32, &str); 7] = [
         (
             ROLE_INTENT, "4db1adda8328b429df27572da7407f0f8feeb65c0c7d1f81df46fa8f74735c5b",
         ),
@@ -254,6 +260,9 @@ mod five_role_path {
         ),
         (
             ROLE_VOID, "68d592b10de5939f4ad0311fe00c675c2caa43f4a8be0ccd48d02362382be52d",
+        ),
+        (
+            ROLE_WITHDRAWAL, "0984e5f8b3dd5c7a6213614fe2a7675964817342b850256a0c475211df1666dc",
         ),
     ];
 

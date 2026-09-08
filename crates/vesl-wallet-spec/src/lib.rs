@@ -23,8 +23,9 @@
 //! - [`ROLE_SESSION`]   (`3`) — short-lived delegation / session keys
 //! - [`ROLE_X402`]      (`4`) — x402 spending keys
 //! - [`ROLE_VOID`]      (`5`) — x402 hold-void (cancellation) keys
+//! - [`ROLE_WITHDRAWAL`](`6`) — x402 withdrawal: where a swept pool lands
 //!
-//! Roles `6+` are reserved for future assignments — see `SPEC.md §5`.
+//! Roles `7+` are reserved for future assignments — see `SPEC.md §5`.
 
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
@@ -94,6 +95,34 @@ pub const ROLE_X402: u32 = 4;
 /// collision unreachable by construction rather than refused by a check.
 pub const ROLE_VOID: u32 = 5;
 
+/// Role 6 — x402 **withdrawal** keys: where the pool lands when the user asks
+/// for their money back.
+///
+/// ⚑ *In plain terms: the address a cash-out is swept into. Money here is on
+/// its way OUT of the wallet — it is never handed to a job and never split
+/// back into spending coins.*
+///
+/// ⛔⛔ **IT IS A SEPARATE ROLE BECAUSE THE ALTERNATIVE IS A LOOP, AND THE
+/// LOOP IS THE POINT.** A sweep that landed at a [`ROLE_RECEIVING`] address
+/// would be classified as an incoming **deposit** — unmarked at a receiving
+/// address is exactly the funding predicate — and fanned straight back out
+/// into the spending pool the user just asked to empty. A distinct role makes
+/// that unreachable **by construction** rather than dependent on a note-data
+/// tag an observer can read and a stranger can write. This is the same
+/// argument [`ROLE_VOID`] makes one role down, and it is why the fix is a
+/// role rather than a check (x402 `PROPOSAL-concurrent-notes.md §9.4`).
+///
+/// ⛔ It is likewise **not** another index under [`ROLE_X402`]: any index
+/// there is a spending slot for some job, so a withdrawal parked at one would
+/// be handed out by the reservation ledger as if it were working capital.
+///
+/// ⚑ Unlike [`ROLE_VOID`], this key does **not** have to rotate with a
+/// payment key — a withdrawal is a deliberate, user-visible act and carries no
+/// per-job unlinkability requirement. Rotating the index per withdrawal is
+/// nonetheless recommended for the same reason deposits rotate: it isolates
+/// each cash-out so a second coin arriving at one reads as an anomaly.
+pub const ROLE_WITHDRAWAL: u32 = 6;
+
 /// Typed BIP44 5-level derivation path.
 ///
 /// Holds the four post-purpose components; the purpose is fixed at
@@ -136,6 +165,7 @@ mod tests {
         assert_eq!(ROLE_SESSION, 3);
         assert_eq!(ROLE_X402, 4);
         assert_eq!(ROLE_VOID, 5);
+        assert_eq!(ROLE_WITHDRAWAL, 6);
     }
 
     /// ⛔⛔ **THE ONE PROPERTY THE VOID KEY EXISTS FOR: AT EVERY INDEX IT IS
@@ -160,6 +190,38 @@ mod tests {
                 payment, void,
                 "the void key must not be the payment key at index {index}"
             );
+        }
+    }
+
+    /// ⛔⛔ **THE ONE PROPERTY THE WITHDRAWAL ROLE EXISTS FOR: AT EVERY INDEX
+    /// IT IS A DIFFERENT PATH FROM A SPENDING SLOT AND FROM A DEPOSIT
+    /// ADDRESS.**
+    ///
+    /// ⚑ *In plain terms: money on its way out must not sit where money on
+    /// its way in sits, and must not sit where a job would be handed it.*
+    /// Collide it with [`ROLE_RECEIVING`] and a cash-out is re-classified as a
+    /// fresh deposit and fanned back into the pool — the loop this role
+    /// exists to make unreachable. Collide it with [`ROLE_X402`] and the
+    /// reservation ledger hands the withdrawn coin to the next job.
+    ///
+    /// ⛔ Asserted **over a range of indices, not at index 0**, for the same
+    /// reason the void test is: a single check at 0 passes for a
+    /// `ROLE_WITHDRAWAL` accidentally defined as another role plus an offset.
+    #[test]
+    fn the_withdrawal_path_is_never_a_pool_or_deposit_path_at_any_index() {
+        for index in [0u32, 1, 2, 7, 4096, u32::MAX] {
+            let withdrawal = DerivationPath::new(0, 0, ROLE_WITHDRAWAL, index);
+            for (other, name) in [
+                (ROLE_X402, "a spending slot"),
+                (ROLE_RECEIVING, "a deposit address"),
+                (ROLE_VOID, "a void key"),
+            ] {
+                assert_ne!(
+                    DerivationPath::new(0, 0, other, index),
+                    withdrawal,
+                    "the withdrawal key must not be {name} at index {index}"
+                );
+            }
         }
     }
 

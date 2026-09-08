@@ -6,6 +6,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — `vesl-wallet-spec`: `ROLE_WITHDRAWAL = 6`
+
+- **`ROLE_WITHDRAWAL` (role 6)** — where a swept x402 spending pool lands when the user asks for their money back, at `m/44'/<coin_type>'/<agent_account>'/6/<index>`. Plus `VeslWallet::withdrawal_signer(account, index)` beside `void_signer`.
+  - **A separate role because the alternative is a loop.** A sweep landing at a `ROLE_RECEIVING` address is classified as an incoming deposit — unmarked at a receiving address *is* the funding predicate — and fanned straight back into the pool the user just asked to empty. A distinct role makes that unreachable by construction rather than dependent on a note-data tag an observer can read and a stranger can write. The same argument `ROLE_VOID` makes one role down.
+  - **No rotation requirement**, unlike `ROLE_VOID`: a withdrawal is a deliberate, user-visible act carrying no per-job unlinkability obligation. Rotating the index per withdrawal is recommended, not required.
+  - The frozen SLIP-10 vector moves deliberately: `ROLE_SCALARS` 6 → 7. Same standard as its six neighbours — a regression pin produced by this crate, not an independent cross-check, because the role step is non-hardened and `tools/slip10_vectors.py` does not implement that branch. The oracle's role map is widened to match.
+  - `tests/round_trip.rs`'s `each_role_yields_a_distinct_key` covered **five** roles and had silently omitted `ROLE_VOID` since 2026-09-03 — it pins no key value, only pairwise distinctness, so the omission stayed green. Extended to seven, and its doc now says why it is the weaker of the two pins.
+  - Control: colliding `ROLE_WITHDRAWAL` onto `ROLE_X402` or `ROLE_RECEIVING` fails the named distinctness test at every index.
+
+### Fixed — documentation that had gone stale at `ROLE_VOID`
+
+- `SPEC.md` §1's path table said role `0`–`4` reserved / `5+` open, §5 was titled *"Roles 5+"* with a `MUST NOT use roles 5+`, and §6 said *"roles 0-4"* — all three written before `ROLE_VOID` shipped on 2026-09-03 and none updated then. §2 had **no Role 5 section at all**; one is backfilled here alongside Role 6.
+- `crates/vesl-wallet/src/lib.rs`'s module doc said *"role constants 0-4"*.
+- ⚑ Not fixed here, recorded instead: `vesl-nockup` carries a bundled copy of this workspace (`vesl-nockup/Cargo.toml` — *"refreshed by sync.sh"*) that predates `ROLE_VOID` entirely and holds **no `slip10_conformance.rs`**. It is on nobody's dependency path — `vesl-x402`, `vesl-core` and `x402-nockchain` all path-dep this repo — so it is a distribution bundle awaiting a `sync.sh`, not a second source of truth to hand-edit.
+
 ### Changed — `vesl-wallet`: HD derivation now conforms to nockchain's own SLIP-10
 
 - **`hd.rs` replaces the custom Cheetah-BIP32-over-Tip5 construction with SLIP-10 / HMAC-SHA512**, transcribed arm-by-arm from `nockchain/hoon/common/slip10.hoon` (the implementation nockchain's own reference wallet derives through, `hoon/apps/wallet/lib/s10.hoon:41`). Same seed phrase now yields the same keys as `nockchain-wallet`, which was not previously true.
