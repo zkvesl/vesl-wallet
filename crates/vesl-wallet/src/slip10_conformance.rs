@@ -50,8 +50,8 @@
 use ibig::UBig;
 use vesl_signing::schnorr::SchnorrPrivateKey;
 use vesl_wallet_spec::{
-    DerivationPath, ROLE_ENCRYPTION, ROLE_INTENT, ROLE_RECEIVING, ROLE_SESSION, ROLE_VOID,
-    ROLE_WITHDRAWAL, ROLE_X402,
+    DerivationPath, ROLE_ENCRYPTION, ROLE_INTENT, ROLE_RECEIVING, ROLE_SESSION, ROLE_SLASH,
+    ROLE_VOID, ROLE_WITHDRAWAL, ROLE_X402,
 };
 
 use crate::hd::{ckd_hardened, ckd_non_hardened, master_from_seed, ser_a_pt, ExtKey};
@@ -235,14 +235,15 @@ mod role_path {
     /// wallet's own frozen depth-1 vector, asserted separately.
     ///
     /// ⚑ `ROLE_VOID` was added 2026-09-03 (x402 `U2`) and `ROLE_WITHDRAWAL`
-    /// 2026-09-08 (x402 row 24); both are pinned to exactly that standard — no
+    /// 2026-09-08 (x402 row 24), and `ROLE_SLASH` 2026-09-27 (`vesl-engine` `port/AUDIT.md` H2);
+    /// all three are pinned to exactly that standard — no
     /// weaker than the roles beside them, and no stronger.
     ///
     /// ⛔ **THE LENGTH ANNOTATION IS THE GUARD.** Adding a role constant
     /// without adding a row here is a compile error, which is the only reason
     /// this table has never silently fallen behind the spec crate the way
     /// `tests/round_trip.rs`'s hand-written `5` did.
-    const ROLE_SCALARS: [(u32, &str); 7] = [
+    const ROLE_SCALARS: [(u32, &str); 8] = [
         (
             ROLE_INTENT, "4db1adda8328b429df27572da7407f0f8feeb65c0c7d1f81df46fa8f74735c5b",
         ),
@@ -263,6 +264,9 @@ mod role_path {
         ),
         (
             ROLE_WITHDRAWAL, "0984e5f8b3dd5c7a6213614fe2a7675964817342b850256a0c475211df1666dc",
+        ),
+        (
+            ROLE_SLASH, "143bf8baa0f929a2ab0a35287b85e97f1c723cd9cfd6c035b5612a5aae68f2b7",
         ),
     ];
 

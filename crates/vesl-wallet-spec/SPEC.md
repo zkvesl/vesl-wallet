@@ -21,7 +21,7 @@ m / 44' / <coin_type>' / <agent_account>' / <role> / <index>
 | `purpose'` | `44'` (constant) | hardened | BIP44 marker |
 | `coin_type'` | TBD upstream — see §4 | hardened | SLIP-44 coin type |
 | `agent_account'` | `0'`, `1'`, … | hardened | Per-agent account; one account = one logical agent identity |
-| `role` | `0`–`6` (reserved); `7+` (open) | non-hardened | See §2 |
+| `role` | `0`–`7` (reserved); `8+` (open) | non-hardened | See §2 |
 | `index` | `0`, `1`, … | non-hardened | Rotation / sequence index within a role |
 
 ### Hardening MUST hold at the account boundary
@@ -106,6 +106,16 @@ Where a swept x402 spending pool lands when the user asks for their money back, 
 
 **Rust constant:** `vesl_wallet_spec::ROLE_WITHDRAWAL = 6`
 
+### Role 7 — a bond's slash-only key
+
+> ⚑ *The key a provider signs its possible slash with, in advance. It can take the stake only by the slash, never by any other way out.*
+
+At `m/44'/<coin_type>'/<agent_account>'/7/<index>`, the same index as the holder key it pairs with. A staked slice names it in its SLASH branch beside the platform's verdict key, and nowhere else.
+
+- **It is a separate role because a signature does not say which branch it spends.** A spend's signed digest covers outputs and fee, not the revealed branch. While SLASH and EXIT both named the holder's key, a stored slash signature plus the platform's funding key could complete the slash through EXIT without the verdict key. A distinct role makes that unreachable by construction — the same argument role 5 makes.
+
+**Rust constant:** `vesl_wallet_spec::ROLE_SLASH = 7`
+
 ---
 
 ## §3 Domain separator registry
@@ -163,11 +173,11 @@ OD#11 tracks the coordination work to:
 
 ---
 
-## §5 Roles 7+
+## §5 Roles 8+
 
-Roles `7` and above are explicitly **open** for future assignments. Future amendments to this spec mint new role assignments rather than redefining existing ones (see §6). Candidate future uses include threshold-Schnorr signing keys, additional encryption schemes, on-chain-delegation authority keys (when Nockchain adds account-abstraction primitives), and oracle-attestation keys.
+Roles `8` and above are explicitly **open** for future assignments. Future amendments to this spec mint new role assignments rather than redefining existing ones (see §6). Candidate future uses include threshold-Schnorr signing keys, additional encryption schemes, on-chain-delegation authority keys (when Nockchain adds account-abstraction primitives), and oracle-attestation keys.
 
-Implementations MUST NOT use roles 7+ until this spec assigns them, to avoid silent collisions across consumers.
+Implementations MUST NOT use roles 8+ until this spec assigns them, to avoid silent collisions across consumers.
 
 ---
 
@@ -175,7 +185,7 @@ Implementations MUST NOT use roles 7+ until this spec assigns them, to avoid sil
 
 This spec follows BIP-style amendment conventions:
 
-- **Breaking changes** mint new role assignments at currently-unreserved slots. Existing role assignments (roles 0-6) are **not** retroactively edited.
+- **Breaking changes** mint new role assignments at currently-unreserved slots. Existing role assignments (roles 0-7) are **not** retroactively edited.
 - **Non-breaking clarifications** (typo fixes, expanded prose, new examples) ship as in-place edits and are reflected in the crate's `CHANGELOG.md`.
 - **The Rust constant set is append-only.** New roles add new `pub const ROLE_*` constants; no constant value ever changes once shipped.
 

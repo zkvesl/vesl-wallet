@@ -6,6 +6,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — `vesl-wallet-spec`: `ROLE_SLASH = 7`
+
+- **`ROLE_SLASH` (role 7)** — a bond's slash-only key, at `m/44'/<coin_type>'/<agent_account>'/7/<index>`, the same index as the holder key it pairs with. Plus `VeslWallet::slash_signer(account, index)` beside `void_signer`.
+  - **A separate role because a signature does not name its branch.** A staked slice's SLASH and EXIT branches both named the holder's key, and a spend's signed digest covers outputs and fee, not the branch — so a stored slash signature plus the platform's funding key completed the slash through EXIT without the verdict key (`vesl-engine` `plans/port/AUDIT.md` H2, owner ruling 2026-09-27). The argument `ROLE_VOID` makes, one more time.
+  - The frozen SLIP-10 vector moves deliberately: `ROLE_SCALARS` 7 → 8, a regression pin produced by this crate like its neighbours; the oracle's role map is widened to match. `each_role_yields_a_distinct_key` extended to eight; a new spec test asserts the slash path differs from every other role's at a range of indices.
+
 ### Added — `vesl-wallet-spec`: `ROLE_WITHDRAWAL = 6`
 
 - **`ROLE_WITHDRAWAL` (role 6)** — where a swept x402 spending pool lands when the user asks for their money back, at `m/44'/<coin_type>'/<agent_account>'/6/<index>`. Plus `VeslWallet::withdrawal_signer(account, index)` beside `void_signer`.

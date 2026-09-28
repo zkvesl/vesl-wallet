@@ -9,7 +9,7 @@ use vesl_signing::prelude::Belt;
 use vesl_signing::schnorr::{schnorr_sign, schnorr_verify};
 use vesl_wallet::{
     DerivationPath, VeslWallet, WalletError, ROLE_ENCRYPTION, ROLE_INTENT, ROLE_RECEIVING,
-    ROLE_SESSION, ROLE_VOID, ROLE_WITHDRAWAL, ROLE_X402, VESL_COIN_TYPE_PLACEHOLDER,
+    ROLE_SESSION, ROLE_SLASH, ROLE_VOID, ROLE_WITHDRAWAL, ROLE_X402, VESL_COIN_TYPE_PLACEHOLDER,
 };
 
 const CANONICAL_MNEMONIC: &str = "abandon abandon abandon abandon abandon abandon abandon abandon \
@@ -52,7 +52,7 @@ fn passphrase_changes_keys() {
 /// array literal and the hard-coded count are two hand-maintained facts, and
 /// omitting a role from both keeps it green. The file that actually freezes
 /// these keys is `src/slip10_conformance.rs`'s `ROLE_SCALARS`, whose length
-/// annotation makes the same omission a compile error. Extended to seven here
+/// annotation makes the same omission a compile error. Extended to eight here
 /// **as well as** there, never instead of it.
 #[test]
 fn each_role_yields_a_distinct_key() {
@@ -60,7 +60,7 @@ fn each_role_yields_a_distinct_key() {
     let mut bytes = Vec::new();
     for role in [
         ROLE_INTENT, ROLE_RECEIVING, ROLE_ENCRYPTION, ROLE_SESSION, ROLE_X402, ROLE_VOID,
-        ROLE_WITHDRAWAL,
+        ROLE_WITHDRAWAL, ROLE_SLASH,
     ] {
         let dk = w
             .derive(DerivationPath::new(VESL_COIN_TYPE_PLACEHOLDER, 0, role, 0))
@@ -76,8 +76,8 @@ fn each_role_yields_a_distinct_key() {
     sorted.dedup();
     assert_eq!(
         sorted.len(),
-        7,
-        "each of the seven assigned roles must derive a distinct scalar"
+        8,
+        "each of the eight assigned roles must derive a distinct scalar"
     );
 }
 

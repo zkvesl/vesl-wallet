@@ -6,8 +6,8 @@ use vesl_signing::domain::{domain_separators, tip5_with_domain};
 use vesl_signing::prelude::Belt;
 use vesl_signing::schnorr::{schnorr_sign, CheetahPoint, SchnorrPrivateKey};
 use vesl_wallet_spec::{
-    DerivationPath, BIP44_PURPOSE, ROLE_INTENT, ROLE_RECEIVING, ROLE_SESSION, ROLE_VOID,
-    ROLE_WITHDRAWAL, ROLE_X402,
+    DerivationPath, BIP44_PURPOSE, ROLE_INTENT, ROLE_RECEIVING, ROLE_SESSION, ROLE_SLASH,
+    ROLE_VOID, ROLE_WITHDRAWAL, ROLE_X402,
 };
 
 use crate::error::WalletError;
@@ -258,6 +258,17 @@ impl VeslWallet {
         index: u32,
     ) -> Result<SchnorrPrivateKey, WalletError> {
         let path = DerivationPath::new(self.coin_type, account, ROLE_WITHDRAWAL, index);
+        Ok(self.derive(path)?.private_key)
+    }
+
+    /// The key at `m/44'/coin'/account'/ROLE_SLASH/index` — the only key a bond's
+    /// SLASH branch names beside the verdict key.
+    ///
+    /// ⭐ Returned rather than wrapped, as [`Self::void_signer`] is: the caller that
+    /// signs a slash must first rebuild the spend and check its amounts, and that
+    /// check does not belong in the wallet.
+    pub fn slash_signer(&self, account: u32, index: u32) -> Result<SchnorrPrivateKey, WalletError> {
+        let path = DerivationPath::new(self.coin_type, account, ROLE_SLASH, index);
         Ok(self.derive(path)?.private_key)
     }
 }

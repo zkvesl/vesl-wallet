@@ -59,6 +59,8 @@ ROLES = {
     "ROLE_VOID": 5,
     # x402 withdrawal: where a swept spending pool lands. Same note applies.
     "ROLE_WITHDRAWAL": 6,
+    # A bond's slash-only key. Same note applies.
+    "ROLE_SLASH": 7,
 }
 
 B58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
