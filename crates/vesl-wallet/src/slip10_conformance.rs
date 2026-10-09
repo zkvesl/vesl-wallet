@@ -47,8 +47,7 @@
 //! ever moves: it will say which vector changed, in seconds, instead of
 //! leaving a wall of unexplainable constants behind.
 
-use ibig::UBig;
-use vesl_signing::schnorr::SchnorrPrivateKey;
+use vesl_signing::schnorr::{Scalar, SchnorrPrivateKey};
 use vesl_wallet_spec::{
     DerivationPath, ROLE_ENCRYPTION, ROLE_INTENT, ROLE_RECEIVING, ROLE_SESSION, ROLE_SLASH,
     ROLE_VOID, ROLE_WITHDRAWAL, ROLE_X402,
@@ -83,18 +82,17 @@ fn b58(s: &str) -> Vec<u8> {
         .expect("base58 test vector decodes")
 }
 
-fn assert_scalar(label: &str, got: &UBig, want_b58: &str) {
+fn assert_scalar(label: &str, got: &Scalar, want_b58: &str) {
     let mut want = [0u8; 32];
     let raw = b58(want_b58);
     want[32 - raw.len()..].copy_from_slice(&raw);
     assert_eq!(
-        got.to_be_bytes().as_slice(),
-        // to_be_bytes() is minimal-width, so compare on the same footing.
-        &want[32 - got.to_be_bytes().len()..],
+        got.to_be_bytes(),
+        want,
         "{label}: scalar does not match the reference wallet"
     );
     assert_eq!(
-        UBig::from_be_bytes(&want),
+        Scalar::from_be_bytes(&want),
         *got,
         "{label}: scalar does not match the reference wallet"
     );
@@ -177,8 +175,9 @@ mod reference_wallet {
         let mut mac = <Hmac<Sha512> as Mac>::new_from_slice(b"Nockchain seeD").unwrap();
         mac.update(&s);
         let mutated: [u8; 64] = mac.finalize().into_bytes().into();
+        let left: [u8; 32] = mutated[..32].try_into().unwrap();
         assert_ne!(
-            UBig::from_be_bytes(&mutated[..32]),
+            Scalar::from_be_bytes(&left),
             master(REFERENCE_MNEMONIC).scalar,
             "a one-byte change to `Nockchain seed` must change the master key"
         );
@@ -270,8 +269,12 @@ mod role_path {
         ),
     ];
 
-    fn hex_to_ubig(s: &str) -> UBig {
-        UBig::from_str_radix(s, 16).expect("hex vector parses")
+    fn hex_to_scalar(s: &str) -> Scalar {
+        assert_eq!(s.len(), 64, "a frozen scalar is 32 bytes of hex");
+        let bytes: [u8; 32] = std::array::from_fn(|i| {
+            u8::from_str_radix(&s[2 * i..2 * i + 2], 16).expect("hex vector parses")
+        });
+        Scalar::from_be_bytes(&bytes)
     }
 
     #[test]
@@ -283,7 +286,7 @@ mod role_path {
                 key = ckd_hardened(&key, *index).expect("hardened step derives");
             }
             let (scalar, chain) = HARDENED_PREFIX[i];
-            assert_eq!(key.scalar, hex_to_ubig(scalar), "level {i} scalar");
+            assert_eq!(key.scalar, hex_to_scalar(scalar), "level {i} scalar");
             assert_eq!(hex(&key.chain_code), chain, "level {i} chain code");
         }
     }
@@ -297,7 +300,7 @@ mod role_path {
         for (role, want) in ROLE_SCALARS {
             let l4 = ckd_non_hardened(&key, role).expect("role step derives");
             let l5 = ckd_non_hardened(&l4, 0).expect("index step derives");
-            assert_eq!(l5.scalar, hex_to_ubig(want), "role {role}");
+            assert_eq!(l5.scalar, hex_to_scalar(want), "role {role}");
         }
     }
 
@@ -314,7 +317,7 @@ mod role_path {
                 .derive(DerivationPath::new(VESL_COIN_TYPE_PLACEHOLDER, 0, role, 0))
                 .expect("public derive succeeds");
             let expected =
-                SchnorrPrivateKey::new(hex_to_ubig(want)).expect("frozen scalar is a valid key");
+                SchnorrPrivateKey::new(hex_to_scalar(want)).expect("frozen scalar is a valid key");
             assert_eq!(
                 derived.private_key.to_t8(),
                 expected.to_t8(),

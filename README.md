@@ -35,7 +35,7 @@ let wallet = VeslWallet::from_seed_phrase(
 )?;
 
 let msg = [Belt(1), Belt(2), Belt(3), Belt(4), Belt(5)];
-let (chal, sig) = wallet.sign_intent(/* account = */ 0, &msg)?;
+let sig = wallet.sign_intent(/* account = */ 0, &msg)?; // SchnorrSig { chal, sig }
 ```
 
 ## Quick start — vesl-signing standalone
@@ -53,14 +53,19 @@ vesl-signing = { git = "https://github.com/zkvesl/vesl-wallet", tag = "v0.0.0" }
 ```
 
 ```rust
-use vesl_signing::schnorr::{SchnorrPrivateKey, schnorr_sign};
+use vesl_signing::schnorr::{schnorr_sign, schnorr_verify, Scalar, SchnorrPrivateKey};
 use vesl_signing::prelude::Belt;
-use ibig::UBig;
 
-let key = SchnorrPrivateKey::new(UBig::from(42_424_242_u64))?;
+let key = SchnorrPrivateKey::new(Scalar::from_u64(42_424_242))?;
 let msg = [Belt(1), Belt(2), Belt(3), Belt(4), Belt(5)];
-let (chal, sig) = schnorr_sign(&key, &msg, /* domain = */ b"vesl-authority-v1")?;
+let sig = schnorr_sign(&key, &msg)?; // SchnorrSig { chal, sig }
+schnorr_verify(&key.public_key()?, &msg, &sig)?;
 ```
+
+Scalars are fixed-width: a `Scalar` is eight little-endian 32-bit limbs (the
+Hoon `t8` layout), convertible to and from `[u32; 8]`, `[Belt; 8]`, `u64` and
+32 big-endian bytes. No big-integer type appears in the public API, so a
+consumer never has to agree with this crate on a big-integer library.
 
 ## Constant-time disclaimer
 

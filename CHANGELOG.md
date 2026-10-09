@@ -6,6 +6,34 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed (breaking) — `vesl-signing` 0.2.0: no `ibig` type in the public API
+
+The workspace version moves to **0.2.0**. `vesl-signing`'s public API spoke `ibig::UBig`, so every consumer had to resolve the *same* `ibig` crate as this one or meet two unrelated `UBig` types. That stopped being possible when nockchain renumbered its vendored `ibig` from 0.3.6 to 0.1.17: a consumer that also links nockchain could no longer unify the two, and its build broke at the first `UBig` that crossed between them.
+
+- **New types.** `Scalar` — a 256-bit value as eight little-endian 32-bit limbs, the Hoon `t8` layout the chain's verifier and its `[Belt; 8]` signature fields already use. `SchnorrSig { chal: Scalar, sig: Scalar }`. Both are `Copy`, `Eq`, `Hash`; `Scalar` orders numerically. Re-exported from `vesl_signing::schnorr` and the crate root.
+- **`ibig` is now private** to `vesl-signing`, and the signing arithmetic is unchanged. `vesl-wallet` no longer depends on `ibig` at all: SLIP-10 derivation uses `Scalar::from_be_bytes`, `to_be_bytes` and `add_mod_order`.
+- **Signatures and encodings are byte-identical.** Golden vectors were captured from 0.1.0-beta.1 *before* the change and are asserted by the new API: 85 signatures (17 keys including `1`, `u32::MAX`, `u64::MAX`, `2^254`, `G_ORDER - 1`, each over 5 messages including all-zero and all-`PRIME - 1`), every public key and JSON encoding, 4 out-of-range keys, 7 `trunc_g_order` inputs and `G_ORDER` itself (`crates/vesl-signing/tests/golden_vectors.rs`), plus 12 `VeslWallet::sign_intent` signatures (`crates/vesl-wallet/tests/round_trip.rs`). The fixtures must never be regenerated.
+- **No compatibility shim.** This is a clean break.
+
+**Migration**
+
+| 0.1.0-beta.1 | 0.2.0 |
+|---|---|
+| `SchnorrPrivateKey::new(UBig::from(n))` | `SchnorrPrivateKey::new(Scalar::from_u64(n))` |
+| `SchnorrPrivateKey::new(ubig)` | `SchnorrPrivateKey::new(Scalar::from_t8(limbs))`, or `from_be_bytes(&[u8; 32])` / `from_belts(&[Belt; 8])` |
+| `let (chal, sig) = schnorr_sign(&sk, &m)?` | `let sig = schnorr_sign(&sk, &m)?` — `sig.chal`, `sig.sig` |
+| `schnorr_verify(&pk, &m, &chal, &sig)` | `schnorr_verify(&pk, &m, &sig)` |
+| `encode_signature(&pk, &chal, &sig)` | `encode_signature(&pk, &sig)` |
+| `let (pk, chal, sig) = decode_signature(&json)?` | `let (pk, sig) = decode_signature(&json)?` |
+| `trunc_g_order(&digest) -> UBig` | `trunc_g_order(&digest) -> Scalar` |
+| `G_ORDER: Lazy<UBig>` (`*G_ORDER`) | `G_ORDER: Scalar` (a `const`) |
+| `VeslWallet::sign_intent(..) -> (UBig, UBig)` | `VeslWallet::sign_intent(..) -> SchnorrSig` |
+| a `UBig` ↔ `[Belt; 8]` helper of your own | `Scalar::from_belts` / `Scalar::to_belts` (`from_belts` keeps each `Belt`'s low 32 bits, as `SchnorrPrivateKey::from_belts` always has) |
+
+Drop any `ibig` dependency, and any `[patch.crates-io] ibig` redirect, that existed only to match this crate's `UBig`.
+
+- `WalletError::ScalarTooWide` is no longer reachable (a `Scalar` always serializes to 32 bytes); retained as public API.
+
 ### Added — `vesl-wallet-spec`: `ROLE_SLASH = 7`
 
 - **`ROLE_SLASH` (role 7)** — a bond's slash-only key, at `m/44'/<coin_type>'/<agent_account>'/7/<index>`, the same index as the holder key it pairs with. Plus `VeslWallet::slash_signer(account, index)` beside `void_signer`.

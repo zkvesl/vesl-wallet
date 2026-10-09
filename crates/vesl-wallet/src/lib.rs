@@ -28,7 +28,7 @@
 //! )?;
 //!
 //! let msg = [Belt(1), Belt(2), Belt(3), Belt(4), Belt(5)];
-//! let (chal, sig) = wallet.sign_intent(0, &msg)?;
+//! let sig = wallet.sign_intent(0, &msg)?; // SchnorrSig { chal, sig }
 //! # Ok::<(), vesl_wallet::WalletError>(())
 //! ```
 //!

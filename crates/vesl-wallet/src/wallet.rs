@@ -1,10 +1,9 @@
 //! Public wallet API.
 
 use bip39::Mnemonic;
-use ibig::UBig;
 use vesl_signing::domain::{domain_separators, tip5_with_domain};
 use vesl_signing::prelude::Belt;
-use vesl_signing::schnorr::{schnorr_sign, CheetahPoint, SchnorrPrivateKey};
+use vesl_signing::schnorr::{schnorr_sign, CheetahPoint, SchnorrPrivateKey, SchnorrSig};
 use vesl_wallet_spec::{
     DerivationPath, BIP44_PURPOSE, ROLE_INTENT, ROLE_RECEIVING, ROLE_SESSION, ROLE_SLASH,
     ROLE_VOID, ROLE_WITHDRAWAL, ROLE_X402,
@@ -43,7 +42,7 @@ pub struct DerivedKey {
 ///     VESL_COIN_TYPE_PLACEHOLDER,
 /// )?;
 /// let msg = [Belt(1), Belt(2), Belt(3), Belt(4), Belt(5)];
-/// let (chal, sig) = wallet.sign_intent(0, &msg)?;
+/// let sig = wallet.sign_intent(0, &msg)?; // SchnorrSig { chal, sig }
 /// # Ok::<(), vesl_wallet::WalletError>(())
 /// ```
 pub struct VeslWallet {
@@ -150,7 +149,7 @@ impl VeslWallet {
         &self,
         account: u32,
         message: &[Belt; 5],
-    ) -> Result<(UBig, UBig), WalletError> {
+    ) -> Result<SchnorrSig, WalletError> {
         let signer = self.intent_signer(account, 0)?;
         schnorr_sign(&signer, message).map_err(WalletError::Signing)
     }
