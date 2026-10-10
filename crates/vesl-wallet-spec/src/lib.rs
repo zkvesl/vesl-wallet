@@ -92,7 +92,7 @@ pub const ROLE_X402: u32 = 4;
 /// reveals** — so while the two branches named one buyer key, the buyer's
 /// capture co-signature also spent the *void* branch, letting the platform be
 /// paid while publishing no delivery key. A live node accepted exactly that,
-/// twice, before the fix (x402 `records/S118`). Separate roles make the
+/// twice, before the fix. Separate roles make the
 /// collision unreachable by construction rather than refused by a check.
 pub const ROLE_VOID: u32 = 5;
 
@@ -136,8 +136,7 @@ pub const ROLE_WITHDRAWAL: u32 = 6;
 /// reveals** — the same defect [`ROLE_VOID`] answers. While the SLASH branch
 /// and the EXIT branch both named the holder's key, a stored slash signature
 /// plus the platform's funding key completed the slash through EXIT, without
-/// the verdict key (`vesl-engine` `plans/port/AUDIT.md` H2, ⚖️ owner
-/// 2026-09-27). A separate role makes the collision unreachable by
+/// the verdict key. A separate role makes the collision unreachable by
 /// construction. Derived at the same index as the holder's key it pairs with.
 pub const ROLE_SLASH: u32 = 7;
 

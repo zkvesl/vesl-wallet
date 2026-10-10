@@ -37,7 +37,7 @@ Drop any `ibig` dependency, and any `[patch.crates-io] ibig` redirect, that exis
 ### Added — `vesl-wallet-spec`: `ROLE_SLASH = 7`
 
 - **`ROLE_SLASH` (role 7)** — a bond's slash-only key, at `m/44'/<coin_type>'/<agent_account>'/7/<index>`, the same index as the holder key it pairs with. Plus `VeslWallet::slash_signer(account, index)` beside `void_signer`.
-  - **A separate role because a signature does not name its branch.** A staked slice's SLASH and EXIT branches both named the holder's key, and a spend's signed digest covers outputs and fee, not the branch — so a stored slash signature plus the platform's funding key completed the slash through EXIT without the verdict key (`vesl-engine` `plans/port/AUDIT.md` H2, owner ruling 2026-09-27). The argument `ROLE_VOID` makes, one more time.
+  - **A separate role because a signature does not name its branch.** A staked slice's SLASH and EXIT branches both named the holder's key, and a spend's signed digest covers outputs and fee, not the branch — so a stored slash signature plus the platform's funding key completed the slash through EXIT without the verdict key. The argument `ROLE_VOID` makes, one more time.
   - The frozen SLIP-10 vector moves deliberately: `ROLE_SCALARS` 7 → 8, a regression pin produced by this crate like its neighbours; the oracle's role map is widened to match. `each_role_yields_a_distinct_key` extended to eight; a new spec test asserts the slash path differs from every other role's at a range of indices.
 
 ### Added — `vesl-wallet-spec`: `ROLE_WITHDRAWAL = 6`
@@ -75,7 +75,7 @@ Drop any `ibig` dependency, and any `[patch.crates-io] ibig` redirect, that exis
 
 - **`vesl-signing` crate** lifted from `x402-nockchain/crates/x402-nockchain-crypto/`:
   - `schnorr.rs` — `SchnorrPrivateKey`, `schnorr_sign`, `schnorr_verify`, plus new `from_belts(&[Belt; 8])` / `to_belts() -> [Belt; 8]` constructors for the `vesl-core` shim path.
-  - `domain.rs` (renamed from `canonical.rs`) — five reserved Tip5 domain separators: `X402`, `SIWN`, `VESL_INTENT`, `VESL_RECEIPT` (NEW, for receipt schema v2), `VESL_AUTHORITY` (NEW, for trust-anchor signed statements). Closes OD#2.
+  - `domain.rs` (renamed from `canonical.rs`) — five reserved Tip5 domain separators: `X402`, `SIWN`, `VESL_INTENT`, `VESL_RECEIPT` (NEW, for receipt schema v2), `VESL_AUTHORITY` (NEW, for trust-anchor signed statements). Settles the intent-signing separator (`VESL_INTENT`).
   - `replay_cache.rs` — `ReplayCache` trait + `InMemoryReplayCache`.
   - `caip122.rs` (renamed from `siwn.rs`) — generic CAIP-122 signing for non-x402 consumers; SIWN is the canonical example.
   - `prelude` module — curated `Belt` + `hash_varlen` re-export for downstream shim crates.
@@ -99,7 +99,7 @@ Drop any `ibig` dependency, and any `[patch.crates-io] ibig` redirect, that exis
 ### Added — `vesl-wallet-spec`
 
 - **`vesl-wallet-spec` crate** — doc-only canonical reference for the BIP44 5-level wallet layout used across the Vesl stack.
-  - `SPEC.md` at the crate root: path shape, role assignments 0-4 (closes OD#1 with `role=4` reserved for x402 spending keys), domain-separator registry pointing at `vesl-signing`, SLIP-44 stance, BIP-style versioning policy.
+  - `SPEC.md` at the crate root: path shape, role assignments 0-4 (`role=4` reserved for x402 spending keys), domain-separator registry pointing at `vesl-signing`, SLIP-44 stance, BIP-style versioning policy.
   - `lib.rs` exports: `BIP44_PURPOSE` constant + five `ROLE_*` constants (`ROLE_INTENT`=0, `ROLE_RECEIVING`=1, `ROLE_ENCRYPTION`=2, `ROLE_SESSION`=3, `ROLE_X402`=4) + typed `DerivationPath` struct (no derivation logic — that lives in `vesl-wallet`).
   - Three crate-internal tests: constant stability, `DerivationPath` Eq/Hash contract, role-distinctness.
 

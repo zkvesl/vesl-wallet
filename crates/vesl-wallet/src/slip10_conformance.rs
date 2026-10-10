@@ -233,9 +233,8 @@ mod role_path {
     /// cross-check. Ground truth for the non-hardened branch is the reference
     /// wallet's own frozen depth-1 vector, asserted separately.
     ///
-    /// ⚑ `ROLE_VOID` was added 2026-09-03 (x402 `U2`) and `ROLE_WITHDRAWAL`
-    /// 2026-09-08 (x402 row 24), and `ROLE_SLASH` 2026-09-27 (`vesl-engine` `port/AUDIT.md` H2);
-    /// all three are pinned to exactly that standard — no
+    /// ⚑ `ROLE_VOID`, `ROLE_WITHDRAWAL` and `ROLE_SLASH` were added after
+    /// the original five roles; all three are pinned to exactly that standard — no
     /// weaker than the roles beside them, and no stronger.
     ///
     /// ⛔ **THE LENGTH ANNOTATION IS THE GUARD.** Adding a role constant

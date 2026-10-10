@@ -3,8 +3,8 @@
 **Status:** v0.1 (held-pre-tag, alongside `vesl-signing` v0.1.0)
 **Crate:** `vesl-wallet-spec` (workspace member of [`vesl-wallet`](https://github.com/zkvesl/vesl-wallet))
 **Depends on:** [`vesl-signing`](../vesl-signing/) for domain separators
-**Closes:** OD#1 (BIP44 layout for x402 — `role=4` reservation)
-**Open:** OD#11 (SLIP-44 coin_type registration — see §4)
+**Settles:** the BIP44 layout for x402 keys (`role=4` reservation)
+**Open:** SLIP-44 coin_type registration (see §4)
 
 ---
 
@@ -68,7 +68,7 @@ Compromise of a single session key limits damage to that session's outstanding i
 
 **Rust constant:** `vesl_wallet_spec::ROLE_SESSION = 3`
 
-### Role 4 — x402 spending keys *(new — closes OD#1)*
+### Role 4 — x402 spending keys *(new)*
 
 x402 payment-authorization spending keys derive at `m/44'/<coin_type>'/<agent_account>'/4/<index>`. This reservation:
 
@@ -76,7 +76,7 @@ x402 payment-authorization spending keys derive at `m/44'/<coin_type>'/<agent_ac
 - Preserves the role-separation discipline of roles 0-3 — payment authority is a distinct role, not overloaded onto the intent-signing key.
 - Domain-separated: x402 payments MUST sign under `vesl_signing::domain::domain_separators::X402` (= `"x402-nockchain-v2"`), not `VESL_INTENT`. See §3.
 
-x402-nockchain's `NockchainWalletClient` should accept a `DerivationPath` (or equivalent) rather than a raw `[Belt; 8]` scalar — see `x402-nockchain/docs/CURRENT_STATE.md §2 gap #5` ("HD-derivation seam"). This spec ships the constant that consumer wires against.
+x402-nockchain's `NockchainWalletClient` should accept a `DerivationPath` (or equivalent) rather than a raw `[Belt; 8]` scalar, so one seed can hold both x402 payment keys and intent keys without collision. This spec ships the constant that consumer wires against.
 
 **Rust constant:** `vesl_wallet_spec::ROLE_X402 = 4`
 
@@ -148,7 +148,7 @@ The same Schnorr-over-Cheetah primitive is reused across roles 0, 3, and 4 — d
 
 ---
 
-## §4 SLIP-44 coin_type — TBD upstream *(OD#11)*
+## §4 SLIP-44 coin_type — TBD upstream
 
 Nockchain has no assigned [SLIP-44](https://github.com/satoshilabs/slips/blob/master/slip-0044.md) coin_type. This spec uses `<coin_type>'` as a symbolic placeholder; the value is **not** fixed by `vesl-wallet-spec`.
 
@@ -162,11 +162,11 @@ Until SLIP-44 assigns a value, implementations may either:
 ### Implementation guidance
 
 - `vesl-wallet` takes `coin_type` as a constructor parameter — it does not hardcode a value. Hull authors set it via `nockup.toml`.
-- Hardware-wallet integrations and external consumers SHOULD coordinate on a single interim value to avoid fragmentation. A coordination thread is open against Nockchain maintainers — see OD#11 ("SLIP-44 coin_type for Nockchain").
+- Hardware-wallet integrations and external consumers SHOULD coordinate on a single interim value to avoid fragmentation. Coordination with the Nockchain maintainers on a SLIP-44 coin_type is open.
 
 ### Follow-up
 
-OD#11 tracks the coordination work to:
+The open coordination work is to:
 - File a SLIP-44 PR upstream against `satoshilabs/slips` claiming a coin_type for Nockchain.
 - Once assigned, mint a `vesl-wallet-spec` amendment specifying the canonical value.
 - Communicate migration guidance to any consumers using interim values.
@@ -196,5 +196,5 @@ The crate version (`vesl-wallet-spec` package version in `Cargo.toml`) tracks do
 ## Cross-references
 
 - [`vesl-signing::domain::domain_separators`](../vesl-signing/src/domain.rs) — reserved Tip5 domain separators (single source of truth).
-- `x402-nockchain/docs/CURRENT_STATE.md §2 gap #5` — HD-derivation seam consuming `ROLE_X402`.
-- OD#1 (closed by this spec) and OD#11 (open SLIP-44 coordination) are tracked in the maintainers' decisions log.
+- x402-nockchain's `NockchainWalletClient` — the consumer that should take a `DerivationPath` and derive at `ROLE_X402` (§2, Role 4).
+- SLIP-44 coin_type registration remains open (§4).
